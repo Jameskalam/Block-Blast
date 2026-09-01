@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet, Modal, ScrollView } from 'react-native';
 import Icon from '../components/Icon';
-import ComingSoonModal from '../components/ComingSoonModal';
 import BannerAd from '../ads/BannerAd';
 import { soundEngine } from '../engine/soundEngine';
+import { openRateUs } from '../config/appInfo';
 
 export default function MainMenuScreen({
   onStartGame,
@@ -19,14 +19,6 @@ export default function MainMenuScreen({
   onOpenThemes,
   theme,
 }) {
-  // Popup for features that are shown but still under development.
-  const [comingSoon, setComingSoon] = useState(null); // { title, message } | null
-
-  const showComingSoon = (title, message) => {
-    soundEngine.playPopSound();
-    setComingSoon({ title, message });
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.bgSolid }}>
     <ScrollView
@@ -93,28 +85,6 @@ export default function MainMenuScreen({
         </View>
       </View>
 
-      {/* Feature shortcuts (some under development) */}
-      <View style={styles.featureRow}>
-        <FeatureButton
-          icon="Medal"
-          label="Leaderboard"
-          onPress={() => showComingSoon('Leaderboard', 'Compete with players worldwide! This feature is under development.')}
-          theme={theme}
-        />
-        <FeatureButton
-          icon="Target"
-          label="Daily Challenge"
-          onPress={() => showComingSoon('Daily Challenge', 'A fresh puzzle every day is on the way! Stay tuned.')}
-          theme={theme}
-        />
-        <FeatureButton
-          icon="Heart"
-          label="Rate Us"
-          onPress={() => showComingSoon('Rate Us', 'Ratings will open once we launch on the Play Store. Thanks for the love!')}
-          theme={theme}
-        />
-      </View>
-
       {/* How to play */}
       <View style={[styles.howTo, { backgroundColor: theme.cardBg, borderColor: theme.cellBorder }]}>
         <Text style={[styles.howToTitle, { color: theme.text }]}>How to Play</Text>
@@ -123,13 +93,21 @@ export default function MainMenuScreen({
         <HowToStep icon="Coin" text="Earn coins and beat your high score!" theme={theme} />
       </View>
 
-      <ComingSoonModal
-        visible={!!comingSoon}
-        title={comingSoon?.title}
-        message={comingSoon?.message}
-        onClose={() => setComingSoon(null)}
-        theme={theme}
-      />
+      {/* Rate Us — opens the Play Store listing */}
+      <Pressable
+        onPress={() => {
+          soundEngine.playPopSound();
+          openRateUs();
+        }}
+        style={({ pressed }) => [
+          styles.rateBtn,
+          { backgroundColor: theme.cardBg, borderColor: theme.cellBorder, transform: [{ scale: pressed ? 0.97 : 1 }] },
+        ]}
+      >
+        <Icon name="Heart" size={18} color="#ff5277" />
+        <Text style={[styles.rateText, { color: theme.text }]}>Rate Us on Play Store</Text>
+        <Icon name="Star" size={16} color="#fbbf24" />
+      </Pressable>
 
       {/* Daily reward popup */}
       <Modal visible={!!dailyReward} transparent animationType="fade" onRequestClose={onDismissDailyReward}>
@@ -172,21 +150,6 @@ function StatCard({ label, value, valueColor, iconName, iconColor, theme }) {
   );
 }
 
-function FeatureButton({ icon, label, onPress, theme }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.featureBtn,
-        { backgroundColor: theme.cardBg, borderColor: theme.cellBorder, transform: [{ scale: pressed ? 0.95 : 1 }] },
-      ]}
-    >
-      <Icon name={icon} size={22} color={theme.accent} />
-      <Text style={[styles.featureLabel, { color: theme.text }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 function HowToStep({ icon, text, theme }) {
   return (
     <View style={styles.howToStep}>
@@ -223,9 +186,8 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 6, alignItems: 'center', borderWidth: 1 },
   statLabel: { fontSize: 10, fontWeight: '800', marginTop: 4 },
   statValue: { fontSize: 18, fontWeight: '900', marginTop: 2 },
-  featureRow: { width: '100%', maxWidth: 380, flexDirection: 'row', gap: 10, marginTop: 4 },
-  featureBtn: { flex: 1, borderRadius: 18, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center', gap: 6 },
-  featureLabel: { fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  rateBtn: { width: '100%', maxWidth: 380, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 18, borderWidth: 1, paddingVertical: 14, marginTop: 4 },
+  rateText: { fontSize: 14, fontWeight: '800' },
   howTo: { width: '100%', maxWidth: 380, borderRadius: 20, borderWidth: 1, padding: 16, gap: 12, marginTop: 4 },
   howToTitle: { fontSize: 16, fontWeight: '900', marginBottom: 2 },
   howToStep: { flexDirection: 'row', alignItems: 'center', gap: 12 },

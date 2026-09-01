@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Block Blast Pro",
-    "slug": "block-blast-pro",
+    "name": "Block Blast",
+    "slug": "block-blast",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

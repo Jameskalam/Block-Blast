@@ -11,6 +11,11 @@
 
 import { Platform } from 'react-native';
 
+// Master switch for the whole ad system. ON: ads are monetization goal for v1.
+// While USE_REAL_ADS is false, ad slots show labeled placeholders so you can
+// see exactly where ads land before wiring the real AdMob SDK.
+export const SHOW_ADS = true;
+
 // Flip to true once react-native-google-mobile-ads is installed + configured.
 export const USE_REAL_ADS = false;
 

@@ -7,6 +7,7 @@ import ComboOverlay from '../components/ComboOverlay';
 import RewardedAdModal from '../ads/RewardedAdModal';
 import BannerAd from '../ads/BannerAd';
 import { useOnlineStatus } from '../ads/useOnlineStatus';
+import { SHOW_ADS } from '../ads/adConfig';
 import BlastLayer from '../components/BlastLayer';
 import StageBanner from '../components/StageBanner';
 import Icon from '../components/Icon';
@@ -318,9 +319,9 @@ export default function GameScreen({
 
     if (!canAnyPieceFit(finalGrid, nextPieceSet)) {
       soundEngine.playLossSound();
-      // Offer a rewarded "continue" only when online and not used yet.
-      // Offline-first: with no connection we skip straight to game over.
-      if (!hasUsedAdResume && isOnline) {
+      // Offer a rewarded "continue" only when ads are on, online, and unused.
+      // Offline-first: no connection (or ads off) => straight to game over.
+      if (SHOW_ADS && !hasUsedAdResume && isOnline) {
         setIsAdModalOpen(true);
       } else {
         setIsGameOver(true);

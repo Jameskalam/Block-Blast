@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { USE_REAL_ADS, AD_UNITS, BANNER_HEIGHT } from './adConfig';
+import { SHOW_ADS, USE_REAL_ADS, AD_UNITS, BANNER_HEIGHT } from './adConfig';
 import { useOnlineStatus } from './useOnlineStatus';
 
 // A bottom banner ad slot.
@@ -16,7 +16,8 @@ import { useOnlineStatus } from './useOnlineStatus';
 export default function BannerAd({ theme }) {
   const isOnline = useOnlineStatus();
 
-  // Offline => no banner at all (game is fully offline).
+  // Ads disabled for this release, or offline => no banner at all.
+  if (!SHOW_ADS) return null;
   if (!isOnline) return null;
 
   if (USE_REAL_ADS) {
