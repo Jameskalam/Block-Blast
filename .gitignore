@@ -1,0 +1,48 @@
+# Dependencies (reinstalled with `npm install` -- never commit these; copying
+# node_modules between machines bakes in absolute paths and breaks native builds)
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native build output
+android/app/build/
+android/build/
+android/.gradle/
+android/.cxx/
+android/app/.cxx/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# Machine-specific: points at the local Android SDK, regenerated per machine
+android/local.properties
+
+# iOS
+ios/Pods/
+ios/build/
+*.xcuserstate
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Editor / OS
+.idea/
+.vscode/
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+
+# Local env
+.env
+.env.local
+
+# Screenshots captured during debugging
+device_screen.png
+emulator_screen.png

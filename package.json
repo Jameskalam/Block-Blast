@@ -1,0 +1,37 @@
+{
+  "name": "block-blast-game",
+  "version": "1.0.0",
+  "description": "Colorful Block Blast Puzzle Game for Android with AdMob Rewarded Video Ads integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "dev": "vite",
+    "build:web": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/netinfo": "11.4.1",
+    "canvas-confetti": "^1.9.4",
+    "expo": "~52.0.0",
+    "expo-asset": "~11.0.5",
+    "expo-av": "~15.0.2",
+    "expo-haptics": "~14.0.1",
+    "expo-status-bar": "~2.0.0",
+    "lucide-react": "^0.380.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-web": "~0.19.13"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.2.0"
+  },
+  "private": true
+}
