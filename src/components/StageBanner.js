@@ -1,17 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Text, View, StyleSheet } from 'react-native';
 
-// Color + subtitle per difficulty phase so the wave reads at a glance.
-const PHASE_STYLE = {
-  'Very Easy': { color: '#22c55e', sub: 'Relax & have fun!' },
-  Easy: { color: '#38ef7d', sub: 'Keep it going!' },
-  Medium: { color: '#fbbf24', sub: 'Getting spicy!' },
-  Complex: { color: '#fb7185', sub: 'Big challenge!' },
-};
-
 /**
- * Announces a difficulty-phase change with a short animated banner.
- * Re-fires whenever `phase` (an object like { name }) changes identity.
+ * Celebrates completing a level and reveals the new background's name.
+ * Re-fires whenever `phase` ({ level, name, difficulty }) changes identity.
  */
 export default function StageBanner({ phase, theme }) {
   const [visible, setVisible] = useState(false);
@@ -36,22 +28,27 @@ export default function StageBanner({ phase, theme }) {
       Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
         setVisible(false);
       });
-    }, 1700);
+    }, 1800);
     return () => clearTimeout(timer);
   }, [phase]);
 
   if (!visible || !phase) return null;
 
-  const info = PHASE_STYLE[phase.name] || { color: '#fbbf24', sub: 'New shapes!' };
+  const accent = theme.accent || '#fbbf24';
 
   return (
     <View style={styles.wrap} pointerEvents="none">
       <Animated.View style={{ opacity, transform: [{ scale }, { translateY }], alignItems: 'center' }}>
-        <Text style={styles.small}>DIFFICULTY</Text>
-        <Text style={[styles.big, { color: '#0f172a', backgroundColor: info.color, shadowColor: info.color }]}>
-          {phase.name.toUpperCase()}
+        <Text style={styles.small}>BOARD CLEARED!</Text>
+        <Text style={[styles.big, { color: '#0f172a', backgroundColor: accent, shadowColor: accent }]}>
+          LEVEL {phase.level}
         </Text>
-        <Text style={[styles.sub, { color: theme.text }]}>{info.sub}</Text>
+        <Text style={[styles.sub, { color: theme.text }]}>
+          +{phase.bonus ?? 0} COINS
+        </Text>
+        <Text style={[styles.tiny, { color: theme.textMuted }]}>
+          {String(phase.difficulty || '').toUpperCase()}
+        </Text>
       </Animated.View>
     </View>
   );
@@ -62,12 +59,13 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
     alignItems: 'center', justifyContent: 'center', zIndex: 70,
   },
-  small: { color: '#ffffff', fontWeight: '800', fontSize: 14, letterSpacing: 4, marginBottom: 6, opacity: 0.9 },
+  small: { color: '#ffffff', fontWeight: '900', fontSize: 15, letterSpacing: 4, marginBottom: 8, opacity: 0.95 },
   big: {
-    paddingVertical: 12, paddingHorizontal: 30, borderRadius: 30,
-    fontWeight: '900', fontSize: 30, letterSpacing: 2, overflow: 'hidden',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.7)',
+    paddingVertical: 12, paddingHorizontal: 32, borderRadius: 30,
+    fontWeight: '900', fontSize: 36, letterSpacing: 2, overflow: 'hidden',
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.75)',
     shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.6, shadowRadius: 24, elevation: 12,
   },
-  sub: { marginTop: 10, fontWeight: '800', fontSize: 15, letterSpacing: 1 },
+  sub: { marginTop: 14, fontWeight: '900', fontSize: 15, letterSpacing: 1.5 },
+  tiny: { marginTop: 6, fontWeight: '800', fontSize: 12, letterSpacing: 1.5 },
 });

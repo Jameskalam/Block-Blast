@@ -8,6 +8,7 @@ import ThemeSelector from './src/components/ThemeSelector';
 import { THEMES } from './src/styles/themes';
 import { storage } from './src/engine/storage';
 import { soundEngine } from './src/engine/soundEngine';
+import { initAds } from './src/ads/initAds';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('main');
@@ -18,6 +19,7 @@ export default function App() {
   const [gamesPlayed, setGamesPlayed] = useState(() => storage.getGamesPlayed());
   const [coins, setCoins] = useState(() => storage.getCoins());
   const [bestCombo, setBestCombo] = useState(() => storage.getBestCombo());
+  const [bestLevel, setBestLevel] = useState(() => storage.getBestLevel());
   const [unlockedThemes, setUnlockedThemes] = useState(() => storage.getUnlockedThemes());
   const [dailyReward, setDailyReward] = useState(null); // { amount } once/day
   const [isMuted, setIsMuted] = useState(false);
@@ -31,6 +33,7 @@ export default function App() {
     setGamesPlayed(storage.getGamesPlayed());
     setCoins(storage.getCoins());
     setBestCombo(storage.getBestCombo());
+    setBestLevel(storage.getBestLevel());
   };
 
   // Load persisted values from AsyncStorage before showing the UI, since the
@@ -39,6 +42,8 @@ export default function App() {
     let cancelled = false;
     // Warm up the audio engine (synthesizes + preloads the sound clips).
     soundEngine.init();
+    // Configure + start the AdMob SDK before any ad slot mounts.
+    initAds();
     storage.hydrate().then((saved) => {
       if (cancelled) return;
       setThemeId(saved.activeTheme);
@@ -47,14 +52,15 @@ export default function App() {
       setGamesPlayed(saved.gamesPlayed);
       setCoins(saved.coins);
       setBestCombo(saved.bestCombo);
+      setBestLevel(saved.bestLevel);
       setUnlockedThemes(saved.unlockedThemes);
       setIsReady(true);
 
       // Daily bonus: give returning players a coin reward once per day.
-      const reward = storage.claimDailyReward(50);
+      const reward = storage.claimDailyReward();
       if (reward.claimed) {
         setCoins(reward.coins);
-        setDailyReward({ amount: reward.amount });
+        setDailyReward({ amount: reward.amount, streak: reward.streak });
         soundEngine.playRewardSound();
       }
     });
@@ -111,11 +117,13 @@ export default function App() {
             gamesPlayed={gamesPlayed}
             coins={coins}
             bestCombo={bestCombo}
+            bestLevel={bestLevel}
             dailyReward={dailyReward}
             onDismissDailyReward={() => setDailyReward(null)}
             isMuted={isMuted}
             onToggleSound={handleToggleSound}
             onOpenThemes={() => setIsThemeModalOpen(true)}
+            onCoinsChange={setCoins}
             theme={theme}
           />
         ) : (

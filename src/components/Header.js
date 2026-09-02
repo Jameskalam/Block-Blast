@@ -6,6 +6,8 @@ export default function Header({
   score,
   highScore,
   coins,
+  level,
+  levelName,
   isMuted,
   onToggleSound,
   onOpenThemes,
@@ -23,9 +25,22 @@ export default function Header({
           <View style={styles.spacer} />
         )}
 
-        <View style={[styles.coinPill, { backgroundColor: theme.cardBg, borderColor: '#fbbf24' }]}>
-          <Icon name="Coin" size={16} color="#fbbf24" />
-          <Text style={styles.coinText}>{(coins ?? 0).toLocaleString()}</Text>
+        {/* Level + the current background's name: progress at a glance. */}
+        <View style={styles.centerGroup}>
+          <View style={styles.centerRow}>
+            <View style={[styles.levelPill, { backgroundColor: theme.accent, borderColor: 'rgba(255,255,255,0.55)' }]}>
+              <Text style={styles.levelText}>LV {level ?? 1}</Text>
+            </View>
+            <View style={[styles.coinPill, { backgroundColor: theme.cardBg, borderColor: '#fbbf24' }]}>
+              <Icon name="Coin" size={15} color="#fbbf24" />
+              <Text style={styles.coinText}>{(coins ?? 0).toLocaleString()}</Text>
+            </View>
+          </View>
+          {levelName ? (
+            <Text style={[styles.levelName, { color: theme.textMuted }]} numberOfLines={1}>
+              {String(levelName).toUpperCase()}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.navButtons}>
@@ -60,8 +75,13 @@ const styles = StyleSheet.create({
   navbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   spacer: { width: 40 },
   iconBtn: { borderRadius: 12, padding: 10, borderWidth: 1 },
-  coinPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 50, borderWidth: 1.5 },
-  coinText: { color: '#fbbf24', fontWeight: '900', fontSize: 16 },
+  coinPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 50, borderWidth: 1.5 },
+  coinText: { color: '#fbbf24', fontWeight: '900', fontSize: 15 },
+  centerGroup: { flex: 1, alignItems: 'center', gap: 3 },
+  centerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  levelPill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 50, borderWidth: 1.5 },
+  levelText: { color: '#0f172a', fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
+  levelName: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
   navButtons: { flexDirection: 'row', gap: 8 },
   scoreRow: { flexDirection: 'row', gap: 12 },
   scoreCard: { flex: 1, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', borderWidth: 1 },

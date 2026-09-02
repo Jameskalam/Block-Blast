@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'Block Blast Pro'
+rootProject.name = 'Blockmint'
 
 dependencyResolutionManagement {
   versionCatalogs {

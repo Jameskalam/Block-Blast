@@ -1,4 +1,4 @@
-# Block Blast Pro — Developer Setup Guide
+# Blockmint — Developer Setup Guide
 
 A React Native (Expo SDK 52) block-puzzle game for Android.
 

@@ -1,13 +1,15 @@
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 
 // -----------------------------------------------------------------------------
 // Tiny runtime WAV synthesizer.
 //
 // React Native has no Web Audio oscillator, and we don't want to ship binary
 // sound assets. Instead we synthesize short PCM tones in JS, wrap them in a WAV
-// header, base64-encode them, and hand the resulting data URI to expo-av.
-// The clips are tiny (a few KB) and generated once at startup, then cached.
+// header, and write them to the cache directory as real .wav files that expo-av
+// loads by file:// URI. The clips are tiny (a few KB) and written once, then
+// reused on later launches.
 // -----------------------------------------------------------------------------
 
 const SAMPLE_RATE = 22050;
@@ -28,8 +30,8 @@ function base64FromBytes(bytes) {
   return out;
 }
 
-// Build a mono 16-bit WAV data URI from an array of float samples (-1..1).
-function wavDataUri(samples) {
+// Build a base64 mono 16-bit WAV payload from float samples (-1..1).
+function wavBase64(samples) {
   const numSamples = samples.length;
   const dataSize = numSamples * 2;
   const buffer = new Uint8Array(44 + dataSize);
@@ -60,14 +62,16 @@ function wavDataUri(samples) {
     offset += 2;
   }
 
-  return 'data:audio/wav;base64,' + base64FromBytes(buffer);
+  return base64FromBytes(buffer);
 }
 
 // A single note: frequency sweep from f0->f1 over `dur` seconds with an
 // attack/decay envelope. `type` picks a simple waveform.
-function tone({ f0, f1 = f0, dur, type = 'sine', vol = 0.5, attack = 0.005, decay = 0.12 }) {
+function tone({ f0, f1 = f0, dur, type = 'sine', vol = 0.5, attack = 0.005 }) {
   const n = Math.floor(SAMPLE_RATE * dur);
   const out = new Float32Array(n);
+  const attackSamples = Math.max(1, Math.floor(attack * SAMPLE_RATE));
+
   for (let i = 0; i < n; i++) {
     const t = i / SAMPLE_RATE;
     const prog = i / n;
@@ -80,11 +84,16 @@ function tone({ f0, f1 = f0, dur, type = 'sine', vol = 0.5, attack = 0.005, deca
     else if (type === 'saw') wave = 2 * (t * freq - Math.floor(0.5 + t * freq));
     else wave = Math.sin(phase);
 
-    // Envelope: quick attack, exponential-ish decay to the end of the clip.
-    const env =
-      prog < attack / dur
-        ? prog / (attack / dur)
-        : Math.max(0, 1 - (t - attack) / (decay + dur));
+    // Envelope: short linear attack, then exponential decay that ALWAYS reaches
+    // zero by the final sample. Anything that ends mid-amplitude produces an
+    // audible click, which is what the previous formula did.
+    let env;
+    if (i < attackSamples) {
+      env = i / attackSamples;
+    } else {
+      const d = (i - attackSamples) / Math.max(1, n - attackSamples); // 0..1
+      env = Math.exp(-4 * d) * (1 - d); // decays smoothly to exactly 0 at d=1
+    }
     out[i] = wave * env * vol;
   }
   return out;
@@ -120,72 +129,89 @@ class SoundEngine {
     this.muted = false;
     this.sounds = {}; // name -> Audio.Sound
     this.ready = false;
+    this._initPromise = null;
   }
 
+  // Synthesize every clip, write it to the cache directory as a real .wav, and
+  // preload it. Files (not `data:` URIs) because Android's ExoPlayer -- which
+  // backs expo-av -- does not reliably play data URIs, which is why the sounds
+  // were silent before.
   async init() {
-    if (this.ready) return;
-    try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
-      });
+    if (this.ready || this._initPromise) return this._initPromise;
 
-      const clips = this._buildClips();
-      await Promise.all(
-        Object.entries(clips).map(async ([name, samples]) => {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: wavDataUri(samples) },
-            { volume: 0.9 }
-          );
-          this.sounds[name] = sound;
-        })
-      );
-      this.ready = true;
-    } catch (e) {
-      // Audio is a nice-to-have; if setup fails we silently fall back to haptics.
-      this.ready = false;
-    }
+    this._initPromise = (async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          staysActiveInBackground: false,
+        });
+
+        const dir = `${FileSystem.cacheDirectory}bb-sfx/`;
+        await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => {});
+
+        const clips = this._buildClips();
+        await Promise.all(
+          Object.entries(clips).map(async ([name, samples]) => {
+            const uri = `${dir}${name}.wav`;
+            const info = await FileSystem.getInfoAsync(uri);
+            if (!info.exists) {
+              await FileSystem.writeAsStringAsync(uri, wavBase64(samples), {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+            }
+            const { sound } = await Audio.Sound.createAsync({ uri }, { volume: 1.0 });
+            this.sounds[name] = sound;
+          })
+        );
+        this.ready = true;
+      } catch (e) {
+        // Audio is a nice-to-have; haptics still fire if this fails.
+        this.ready = false;
+      }
+    })();
+
+    return this._initPromise;
   }
 
   // Define the actual sound design for each game event.
   _buildClips() {
     return {
       // Light UI tap when picking up a piece.
-      pop: tone({ f0: 660, f1: 880, dur: 0.08, type: 'triangle', vol: 0.35, decay: 0.05 }),
+      pop: tone({ f0: 660, f1: 880, dur: 0.08, type: 'triangle', vol: 0.35 }),
 
       // Satisfying "click-in" when a shape is placed on the board.
       place: sequence([
-        tone({ f0: 523, f1: 784, dur: 0.09, type: 'triangle', vol: 0.45, decay: 0.06 }),
-        tone({ f0: 784, dur: 0.06, type: 'sine', vol: 0.4, decay: 0.08 }),
+        tone({ f0: 523, f1: 784, dur: 0.09, type: 'triangle', vol: 0.45 }),
+        tone({ f0: 784, dur: 0.06, type: 'sine', vol: 0.4 }),
       ]),
 
       // Bright explosive sweep when a line is cleared.
       blast: mix(
-        tone({ f0: 880, f1: 1760, dur: 0.28, type: 'saw', vol: 0.3, decay: 0.25 }),
-        tone({ f0: 440, f1: 990, dur: 0.28, type: 'square', vol: 0.18, decay: 0.25 })
+        tone({ f0: 880, f1: 1760, dur: 0.28, type: 'saw', vol: 0.3 }),
+        tone({ f0: 440, f1: 990, dur: 0.28, type: 'square', vol: 0.18 })
       ),
 
       // Rising 3-note arpeggio for combos.
       combo: sequence([
-        tone({ f0: 659, dur: 0.09, type: 'triangle', vol: 0.4, decay: 0.05 }),
-        tone({ f0: 830, dur: 0.09, type: 'triangle', vol: 0.4, decay: 0.05 }),
-        tone({ f0: 988, dur: 0.14, type: 'triangle', vol: 0.45, decay: 0.1 }),
+        tone({ f0: 659, dur: 0.09, type: 'triangle', vol: 0.4 }),
+        tone({ f0: 830, dur: 0.09, type: 'triangle', vol: 0.4 }),
+        tone({ f0: 988, dur: 0.14, type: 'triangle', vol: 0.45 }),
       ]),
 
       // Happy 4-note fanfare for reaching a new stage / reward.
       reward: sequence([
-        tone({ f0: 523, dur: 0.1, type: 'triangle', vol: 0.45, decay: 0.05 }),
-        tone({ f0: 659, dur: 0.1, type: 'triangle', vol: 0.45, decay: 0.05 }),
-        tone({ f0: 784, dur: 0.1, type: 'triangle', vol: 0.45, decay: 0.05 }),
-        tone({ f0: 1047, dur: 0.22, type: 'triangle', vol: 0.5, decay: 0.15 }),
+        tone({ f0: 523, dur: 0.1, type: 'triangle', vol: 0.45 }),
+        tone({ f0: 659, dur: 0.1, type: 'triangle', vol: 0.45 }),
+        tone({ f0: 784, dur: 0.1, type: 'triangle', vol: 0.45 }),
+        tone({ f0: 1047, dur: 0.22, type: 'triangle', vol: 0.5 }),
       ]),
 
       // Descending "aww" for game over.
       loss: sequence([
-        tone({ f0: 440, dur: 0.16, type: 'triangle', vol: 0.4, decay: 0.1 }),
-        tone({ f0: 349, dur: 0.16, type: 'triangle', vol: 0.4, decay: 0.1 }),
-        tone({ f0: 262, dur: 0.3, type: 'triangle', vol: 0.4, decay: 0.2 }),
+        tone({ f0: 440, dur: 0.16, type: 'triangle', vol: 0.4 }),
+        tone({ f0: 349, dur: 0.16, type: 'triangle', vol: 0.4 }),
+        tone({ f0: 262, dur: 0.3, type: 'triangle', vol: 0.4 }),
       ]),
     };
   }
@@ -197,10 +223,26 @@ class SoundEngine {
 
   async _play(name, rate = 1.0) {
     if (this.muted) return;
+    // A sound may be triggered before preloading finished (e.g. the very first
+    // tap). Wait for init rather than dropping the effect silently.
+    if (!this.ready) {
+      try {
+        await this.init();
+      } catch (e) {
+        return;
+      }
+      if (this.muted) return;
+    }
     const sound = this.sounds[name];
     if (!sound) return;
     try {
-      await sound.setStatusAsync({ shouldPlay: true, positionMillis: 0, rate, shouldCorrectPitch: false });
+      // Rewind then play so rapid repeats (fast placements) always retrigger.
+      await sound.setStatusAsync({
+        shouldPlay: true,
+        positionMillis: 0,
+        rate,
+        shouldCorrectPitch: false,
+      });
     } catch (e) {
       // ignore playback errors
     }

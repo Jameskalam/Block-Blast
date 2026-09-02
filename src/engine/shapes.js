@@ -1,249 +1,250 @@
-// Every shape carries a `tier` used by the difficulty curve:
-//   tier 1 -> big & simple (satisfying, easy to place on an open board)
-//   tier 2 -> medium complexity (L / T / short lines)
-//   tier 3 -> complex & irregular (single dots, S / Z / plus)
-export const BLOCK_SHAPES = [
-  // ---------------- TIER 1: big & simple ----------------
-  {
-    id: 'square_3x3',
-    tier: 1,
-    matrix: [
-      [1, 1, 1],
-      [1, 1, 1],
-      [1, 1, 1],
-    ],
-  },
-  {
-    id: 'square_2x2',
-    tier: 1,
-    matrix: [
-      [1, 1],
-      [1, 1],
-    ],
-  },
-  {
-    id: 'rect_2x3',
-    tier: 1,
-    matrix: [
-      [1, 1, 1],
-      [1, 1, 1],
-    ],
-  },
-  {
-    id: 'rect_3x2',
-    tier: 1,
-    matrix: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-    ],
-  },
-  {
-    id: 'h_line_4',
-    tier: 1,
-    matrix: [[1, 1, 1, 1]],
-  },
-  {
-    id: 'v_line_4',
-    tier: 1,
-    matrix: [[1], [1], [1], [1]],
-  },
-  {
-    id: 'h_line_3',
-    tier: 1,
-    matrix: [[1, 1, 1]],
-  },
-  {
-    id: 'v_line_3',
-    tier: 1,
-    matrix: [[1], [1], [1]],
-  },
+import { canPlacePiece, GRID_SIZE } from './gameLogic';
 
-  // ---------------- TIER 2: medium ----------------
-  {
-    id: 'l_shape_1',
-    tier: 2,
-    matrix: [
-      [1, 0],
-      [1, 0],
-      [1, 1],
-    ],
-  },
-  {
-    id: 'l_shape_2',
-    tier: 2,
-    matrix: [
-      [0, 1],
-      [0, 1],
-      [1, 1],
-    ],
-  },
-  {
-    id: 'l_shape_3',
-    tier: 2,
-    matrix: [
-      [1, 1],
-      [1, 0],
-      [1, 0],
-    ],
-  },
-  {
-    id: 'l_shape_4',
-    tier: 2,
-    matrix: [
-      [1, 1],
-      [0, 1],
-      [0, 1],
-    ],
-  },
-  {
-    id: 't_shape_1',
-    tier: 2,
-    matrix: [
-      [1, 1, 1],
-      [0, 1, 0],
-    ],
-  },
-  {
-    id: 'corner_2x2',
-    tier: 2,
-    matrix: [
-      [1, 1],
-      [1, 0],
-    ],
-  },
-  {
-    id: 'h_line_2',
-    tier: 2,
-    matrix: [[1, 1]],
-  },
-  {
-    id: 'v_line_2',
-    tier: 2,
-    matrix: [[1], [1]],
-  },
+// -----------------------------------------------------------------------------
+// Shape pool + difficulty.
+//
+// Every shape fits inside a 3x3 bounding box (the 3x3 square is the largest
+// piece in the game). Rather than hand-writing every orientation, we define a
+// few BASE shapes and generate all their unique rotations automatically -- that
+// gives a lot of variety with no duplicated, hand-mistyped matrices.
+//
+// Tiers rank shapes by how easy they make it to BLAST a line -- which is what
+// actually hooks a player -- not by how easy they are to drop somewhere.
+//
+// The property that matters is whether a shape TILES WITHOUT LEAVING HOLES.
+// Rectangles and straight lines pack flush against each other and complete rows
+// fast. Bends (L/J/T) leave small gaps. S/Z/plus/U leave gaps you can't fill
+// without exactly the right follow-up piece.
+//
+//   tier 1 -> rectangular: lines, 2x2, 2x3. Tiles perfectly => frequent clears
+//   tier 2 -> bends and big solids: corner, L, J, T, boot, 3x3
+//   tier 3 -> hole-makers: S, Z, plus, U, big corner
+//
+// Note a 1x1 is trivially easy to PLACE but poor for clearing (it fills one cell
+// and clutters the board), so it lives in tier 1 only as a light filler.
+// -----------------------------------------------------------------------------
 
-  // ---------------- TIER 3: complex & irregular ----------------
-  {
-    id: 'single_1',
-    tier: 3,
-    matrix: [[1]],
-  },
-  {
-    id: 's_shape',
-    tier: 3,
-    matrix: [
-      [0, 1, 1],
-      [1, 1, 0],
-    ],
-  },
-  {
-    id: 'z_shape',
-    tier: 3,
-    matrix: [
-      [1, 1, 0],
-      [0, 1, 1],
-    ],
-  },
-  {
-    id: 'plus_shape',
-    tier: 3,
-    matrix: [
-      [0, 1, 0],
-      [1, 1, 1],
-      [0, 1, 0],
-    ],
-  },
-  {
-    id: 'l_big',
-    tier: 3,
-    matrix: [
-      [1, 0, 0],
-      [1, 0, 0],
-      [1, 1, 1],
-    ],
-  },
+const BASE_SHAPES = [
+  // ---------------- TIER 1: blast-friendly rectangles ----------------
+  // `weight` biases picks within a tier. The big rectangles are the ones that
+  // actually complete lines, so they dominate; the dot and domino are useful
+  // gap-fillers but dull to play, so they stay occasional.
+  { id: 'line3', tier: 1, weight: 3, matrix: [[1, 1, 1]] },
+  { id: 'rect23', tier: 1, weight: 3, matrix: [[1, 1, 1], [1, 1, 1]] },
+  { id: 'square2', tier: 1, weight: 3, matrix: [[1, 1], [1, 1]] },
+  { id: 'domino', tier: 1, weight: 1, matrix: [[1, 1]] },
+  { id: 'dot', tier: 1, weight: 1, matrix: [[1]] },
+
+  // ---------------- TIER 2: bends + big solids ----------------
+  { id: 'corner', tier: 2, matrix: [[1, 1], [1, 0]] },
+  { id: 'jshape', tier: 2, matrix: [[0, 1], [0, 1], [1, 1]] },
+  { id: 'lshape', tier: 2, matrix: [[1, 0], [1, 0], [1, 1]] },
+  { id: 'tshape', tier: 2, matrix: [[1, 1, 1], [0, 1, 0]] },
+  // Short L inside 2x3 (a.k.a. the "boot").
+  { id: 'boot', tier: 2, matrix: [[1, 0, 0], [1, 1, 1]] },
+  { id: 'square3', tier: 2, matrix: [[1, 1, 1], [1, 1, 1], [1, 1, 1]] },
+
+  // ---------------- TIER 3: hole-makers ----------------
+  { id: 'sshape', tier: 3, matrix: [[0, 1, 1], [1, 1, 0]] },
+  { id: 'zshape', tier: 3, matrix: [[1, 1, 0], [0, 1, 1]] },
+  { id: 'plus', tier: 3, matrix: [[0, 1, 0], [1, 1, 1], [0, 1, 0]] },
+  { id: 'bigcorner', tier: 3, matrix: [[1, 0, 0], [1, 0, 0], [1, 1, 1]] },
+  // U -- awkward but very satisfying to slot in.
+  { id: 'ushape', tier: 3, matrix: [[1, 0, 1], [1, 1, 1]] },
 ];
+
+// Rotate a matrix 90 degrees clockwise.
+function rotate90(m) {
+  const rows = m.length;
+  const cols = m[0].length;
+  const out = [];
+  for (let c = 0; c < cols; c++) {
+    const row = [];
+    for (let r = rows - 1; r >= 0; r--) row.push(m[r][c]);
+    out.push(row);
+  }
+  return out;
+}
+
+const key = (m) => m.map((r) => r.join('')).join('/');
+
+// Expand each base shape into its distinct rotations (1, 2 or 4 of them).
+function expandRotations(shapes) {
+  const out = [];
+  shapes.forEach((shape) => {
+    const seen = new Set();
+    let m = shape.matrix;
+    for (let i = 0; i < 4; i++) {
+      const k = key(m);
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push({
+          // Distinct id per orientation so "no duplicates in a tray" also means
+          // no two identical-looking pieces.
+          id: `${shape.id}_r${i}`,
+          family: shape.id,
+          tier: shape.tier,
+          weight: shape.weight || 1,
+          matrix: m,
+        });
+      }
+      m = rotate90(m);
+    }
+  });
+  return out;
+}
+
+export const BLOCK_SHAPES = expandRotations(BASE_SHAPES);
 
 // How many colors are defined per theme (blockColors 1..8).
 const COLOR_COUNT = 8;
 
-// Difficulty phases, from gentlest to hardest. Each defines how tier-1 (big &
-// simple), tier-2 (medium) and tier-3 (complex) shapes are weighted in the pool.
-export const DIFFICULTY_PHASES = [
-  { name: 'Very Easy', weights: { 1: 10, 2: 1, 3: 0 } },
-  { name: 'Easy', weights: { 1: 7, 2: 3, 3: 0 } },
-  { name: 'Medium', weights: { 1: 3, 2: 5, 3: 2 } },
-  { name: 'Complex', weights: { 1: 1, 2: 4, 3: 5 } },
-];
+// Guarantee this many placeable pieces per tray when the board allows it.
+const TARGET_PLACEABLE = 2;
 
-// Rounds (tray refills) spent at each phase before advancing. Kept short but
-// >1 so the change is gentle rather than jarring.
-const ROUNDS_PER_PHASE = 2;
+// -----------------------------------------------------------------------------
+// Difficulty curve.
+//
+// Paced by TRAYS COMPLETED, not by level. Levels only advance when the whole
+// board is wiped (rare by design), so tying the shape mix to level meant a
+// player could spend an entire game seeing only the handful of tier-1 shapes.
+// Trays refill every 3 placements, so this ramps at a pace players actually feel.
+//
+// It never becomes permanently hard: every 5th tray is an easy breather and
+// tier 3 is capped so late trays stay winnable.
+// -----------------------------------------------------------------------------
+export function difficultyForTrays(trays) {
+  const t = Math.max(0, Math.floor(trays || 0));
 
-// Map a round number to a difficulty phase index using a repeating sawtooth:
-//   Very Easy -> Easy -> Medium -> Complex -> Very Easy -> ...
-// This keeps the game from getting permanently hard: after a Complex stretch it
-// resets to Very Easy so players of all ages get regular breathers.
-export function phaseIndexForRound(round) {
-  const step = Math.floor(Math.max(0, round) / ROUNDS_PER_PHASE);
-  return step % DIFFICULTY_PHASES.length;
+  // Regular breather so the game never feels relentless.
+  if (t > 0 && t % 6 === 0) return { name: 'Breather', weights: { 1: 8, 2: 3, 3: 0 } };
+
+  // Opening hook: rectangles only. The board fills flush, lines complete almost
+  // by accident, and the player gets a run of satisfying blasts straight away.
+  if (t <= 3) return { name: 'Warm Up', weights: { 1: 10, 2: 0, 3: 0 } };
+
+  // Bends start appearing, still comfortably blast-friendly.
+  if (t <= 8) return { name: 'Easy', weights: { 1: 8, 2: 3, 3: 0 } };
+
+  // First hole-makers, sparingly.
+  if (t <= 15) return { name: 'Steady', weights: { 1: 6, 2: 4, 3: 1 } };
+
+  if (t <= 25) return { name: 'Tricky', weights: { 1: 5, 2: 5, 3: 2 } };
+
+  // Hard cap: tier 1 never drops below tier 3, so clears always stay achievable.
+  return { name: 'Master', weights: { 1: 4, 2: 5, 3: 3 } };
 }
 
-export function phaseNameForRound(round) {
-  return DIFFICULTY_PHASES[phaseIndexForRound(round)].name;
+export function difficultyName(trays) {
+  return difficultyForTrays(trays).name;
 }
 
-// Build a pool of shapes where each shape appears `weight` times based on its
-// tier, so a weighted random pick respects the current difficulty phase.
-function buildWeightedPool(round) {
-  const weights = DIFFICULTY_PHASES[phaseIndexForRound(round)].weights;
+// Build a pool where each shape appears `weight` times for its tier.
+function buildWeightedPool(trays) {
+  const { weights } = difficultyForTrays(trays);
   const pool = [];
   BLOCK_SHAPES.forEach((shape) => {
-    const w = weights[shape.tier] || 0;
+    // Tier weight (how common this difficulty band is) x per-shape weight (how
+    // desirable this specific shape is within its band).
+    const w = (weights[shape.tier] || 0) * shape.weight;
     for (let i = 0; i < w; i++) pool.push(shape);
   });
-  // Safety net: never return an empty pool.
-  return pool.length > 0 ? pool : BLOCK_SHAPES;
+  return pool.length > 0 ? pool : BLOCK_SHAPES.filter((s) => s.tier === 1);
 }
 
-// Pick `count` distinct vivid colors (indices 1..COLOR_COUNT). Falls back to
-// allowing repeats only if more pieces than available colors are requested.
+// Pick `count` distinct vivid colors (indices 1..COLOR_COUNT).
 function pickDistinctColors(count) {
   const available = [];
   for (let i = 1; i <= COLOR_COUNT; i++) available.push(i);
-  // Fisher-Yates shuffle
   for (let i = available.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [available[i], available[j]] = [available[j], available[i]];
   }
   const colors = [];
-  for (let i = 0; i < count; i++) {
-    colors.push(available[i % available.length]);
-  }
+  for (let i = 0; i < count; i++) colors.push(available[i % available.length]);
   return colors;
+}
+
+// Does `matrix` fit anywhere on `grid`?
+function fitsAnywhere(grid, matrix) {
+  if (!grid) return true;
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  for (let r = 0; r <= GRID_SIZE - rows; r++) {
+    for (let c = 0; c <= GRID_SIZE - cols; c++) {
+      if (canPlacePiece(grid, matrix, r, c)) return true;
+    }
+  }
+  return false;
+}
+
+function makePiece(template, colorIndex, i) {
+  return {
+    instanceId: `piece_${Date.now()}_${i}_${Math.random()}`,
+    id: template.id,
+    family: template.family,
+    matrix: template.matrix,
+    tier: template.tier,
+    colorIndex,
+    used: false,
+  };
 }
 
 /**
  * Generate a fresh set of tray pieces.
+ *
+ * Two guarantees that matter for how the game feels:
+ *   1. VARIETY   -- no two pieces in a tray come from the same shape family, so
+ *                   you never get three identical blocks at once.
+ *   2. PLAYABLE  -- at least TARGET_PLACEABLE pieces fit the current board when
+ *                   the board has room, so a tray is never an instant dead end.
+ *
  * @param {number} count  Number of pieces (default 3).
- * @param {number} round  Round number (tray refill count). Difficulty cycles
- *                        gently through phases based on this.
+ * @param {number} trays  Trays completed so far; drives the difficulty mix.
+ * @param {number[][]} grid  Current board, used to guarantee playability.
  */
-export function getRandomPieceSet(count = 3, round = 0) {
-  const pool = buildWeightedPool(round);
+export function getRandomPieceSet(count = 3, trays = 0, grid = null) {
+  const pool = buildWeightedPool(trays);
   const colors = pickDistinctColors(count);
-  const pieces = [];
 
+  // Draw pieces, rejecting families already in this tray so the set looks varied.
+  const pieces = [];
+  const usedFamilies = new Set();
   for (let i = 0; i < count; i++) {
-    const template = pool[Math.floor(Math.random() * pool.length)];
-    pieces.push({
-      instanceId: `piece_${Date.now()}_${i}_${Math.random()}`,
-      id: template.id,
-      matrix: template.matrix,
-      colorIndex: colors[i],
-      used: false,
-    });
+    let template = null;
+    for (let attempt = 0; attempt < 24 && !template; attempt++) {
+      const candidate = pool[Math.floor(Math.random() * pool.length)];
+      if (!usedFamilies.has(candidate.family)) template = candidate;
+    }
+    // Fallback: pool ran out of distinct families -> allow a repeat.
+    if (!template) template = pool[Math.floor(Math.random() * pool.length)];
+    usedFamilies.add(template.family);
+    pieces.push(makePiece(template, colors[i], i));
   }
+
+  if (!grid) return pieces;
+
+  // Repair the tray so enough pieces are genuinely placeable.
+  const options = BLOCK_SHAPES.filter((s) => fitsAnywhere(grid, s.matrix)).sort(
+    (a, b) => a.tier - b.tier
+  );
+  if (options.length === 0) return pieces; // board is full; game over is fair
+
+  const want = Math.min(TARGET_PLACEABLE, count, options.length);
+  let fitting = pieces.filter((p) => fitsAnywhere(grid, p.matrix)).length;
+
+  for (let i = 0; i < count && fitting < want; i++) {
+    if (fitsAnywhere(grid, pieces[i].matrix)) continue;
+    // Prefer a replacement whose family isn't already in the tray, to keep the
+    // variety guarantee while making the tray playable.
+    const fresh = options.filter((o) => !usedFamilies.has(o.family));
+    const from = fresh.length > 0 ? fresh : options;
+    const pick = from[Math.floor(Math.random() * Math.min(from.length, 8))];
+    usedFamilies.delete(pieces[i].family);
+    usedFamilies.add(pick.family);
+    pieces[i] = makePiece(pick, pieces[i].colorIndex, i);
+    fitting++;
+  }
+
   return pieces;
 }

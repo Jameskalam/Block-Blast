@@ -151,6 +151,17 @@ export function canAnyPieceFit(grid, pieceSet) {
   return false;
 }
 
+// True when not a single block is left on the board. Wiping the board is the
+// level-complete condition, so this drives level (and background) progression.
+export function isGridEmpty(grid) {
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (grid[r][c] > 0) return false;
+    }
+  }
+  return true;
+}
+
 export function clearSpaceForResume(grid) {
   const newGrid = grid.map(row => [...row]);
   // Clear rows 3 and 4 (the middle of the 8x8 grid) to ensure generous space for continuation

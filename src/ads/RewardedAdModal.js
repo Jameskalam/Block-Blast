@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { RewardedAd, RewardedAdEventType, AdEventType } from 'react-native-google-mobile-ads';
 import Icon from '../components/Icon';
 import { soundEngine } from '../engine/soundEngine';
-import { USE_REAL_ADS, AD_UNITS } from './adConfig';
+import { AD_UNITS, AD_REQUEST_OPTIONS, IS_TEST_ADS } from './adConfig';
 
 // Rewarded ad experience shown when the player is out of moves AND online.
 //
@@ -13,36 +14,82 @@ import { USE_REAL_ADS, AD_UNITS } from './adConfig';
 // TODO (real SDK): replace the simulated playback in `startAd` with
 // react-native-google-mobile-ads RewardedAd.createForAdRequest(AD_UNITS.rewarded),
 // load it, show it, and resolve onReward on the EARNED_REWARD event.
-const AD_DURATION_MS = 3000;
-
 export default function RewardedAdModal({ isOpen, onReward, onSkip, theme }) {
   const [playing, setPlaying] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
+  const adRef = useRef(null);
+  // Tracks whether the SDK actually reported EARNED_REWARD for this view, so a
+  // player who closes the ad early is never granted the reward.
+  const earnedRef = useRef(false);
 
+  // Preload a rewarded ad whenever the prompt opens, so tapping "watch" is
+  // instant instead of staring at a spinner.
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+
+    setPlaying(false);
+    setLoaded(false);
+    setFailed(false);
+    earnedRef.current = false;
+    progress.setValue(0);
+
+    const ad = RewardedAd.createForAdRequest(AD_UNITS.rewarded, AD_REQUEST_OPTIONS);
+    adRef.current = ad;
+
+    const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      setLoaded(true);
+    });
+    const unsubEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+      earnedRef.current = true;
+    });
+    const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
       setPlaying(false);
-      progress.setValue(0);
-    }
-  }, [isOpen]);
-
-  const startAd = () => {
-    setPlaying(true);
-    soundEngine.playPopSound();
-
-    // Simulated rewarded playback. Swap for the real SDK show() call.
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: AD_DURATION_MS,
-      useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (finished) {
+      // Grant only if the reward was genuinely earned; otherwise treat the
+      // dismissal as a skip.
+      if (earnedRef.current) {
         soundEngine.playRewardSound();
-        setPlaying(false);
         onReward && onReward();
+      } else {
+        onSkip && onSkip();
       }
     });
-  };
+    const unsubError = ad.addAdEventListener(AdEventType.ERROR, () => {
+      setFailed(true);
+      setPlaying(false);
+    });
+
+    ad.load();
+
+    return () => {
+      unsubLoaded();
+      unsubEarned();
+      unsubClosed();
+      unsubError();
+      adRef.current = null;
+    };
+    // onReward/onSkip are stable enough here; re-subscribing per open is correct.
+  }, [isOpen]);
+
+  const startAd = useCallback(() => {
+    soundEngine.playPopSound();
+    const ad = adRef.current;
+    if (!ad || !loaded) {
+      // Nothing to show (no fill / still loading). Don't punish the player for
+      // an ad problem -- let them continue.
+      onReward && onReward();
+      return;
+    }
+    setPlaying(true);
+    try {
+      ad.show();
+    } catch (e) {
+      setFailed(true);
+      setPlaying(false);
+      onReward && onReward();
+    }
+  }, [loaded, onReward]);
 
   const width = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
@@ -60,9 +107,14 @@ export default function RewardedAdModal({ isOpen, onReward, onSkip, theme }) {
                 Watch a short video to magically clear space and continue your game.
               </Text>
 
-              <Pressable onPress={startAd} style={[styles.watchBtn, { backgroundColor: theme.accent }]}>
+              <Pressable
+                onPress={startAd}
+                style={[styles.watchBtn, { backgroundColor: theme.accent, opacity: loaded || failed ? 1 : 0.6 }]}
+              >
                 <Icon name="Film" size={20} color="#ffffff" />
-                <Text style={styles.watchText}>WATCH & CONTINUE</Text>
+                <Text style={styles.watchText}>
+                  {failed ? 'CONTINUE' : loaded ? 'WATCH & CONTINUE' : 'LOADING AD…'}
+                </Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -80,7 +132,7 @@ export default function RewardedAdModal({ isOpen, onReward, onSkip, theme }) {
                 <Icon name="PlayCircle" size={46} color={theme.accent} />
                 <Text style={styles.adLabel}>Advertisement</Text>
                 <Text style={[styles.adUnit, { color: theme.textMuted }]} numberOfLines={1}>
-                  {USE_REAL_ADS ? 'Loading ad…' : `Test unit · ${AD_UNITS.rewarded}`}
+                  {IS_TEST_ADS ? 'Google test ad' : 'Advertisement'}
                 </Text>
                 <View style={styles.progressTrack}>
                   <Animated.View style={[styles.progressFill, { width, backgroundColor: theme.accent }]} />

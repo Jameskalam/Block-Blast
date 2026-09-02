@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { View, StyleSheet, PanResponder } from 'react-native';
+import Block from './Block';
 
 function DraggableSlot({ piece, isDragging, onDragStart, onDragMove, onDragEnd, theme }) {
   const isUsed = piece.used;
@@ -64,19 +65,9 @@ function DraggableSlot({ piece, isDragging, onDragStart, onDragMove, onDragEnd, 
             {row.map((cell, c) => (
               <View
                 key={`${r}_${c}`}
-                style={[
-                  styles.miniCell,
-                  cell === 1
-                    ? { backgroundColor: color, borderColor: 'rgba(255,255,255,0.5)', borderWidth: 1, overflow: 'hidden' }
-                    : { backgroundColor: 'transparent' },
-                ]}
+                style={styles.miniCell}
               >
-                {cell === 1 ? (
-                  <>
-                    <View style={styles.miniTop} />
-                    <View style={styles.miniBottom} />
-                  </>
-                ) : null}
+                {cell === 1 ? <Block color={color} radius={6} /> : null}
               </View>
             ))}
           </View>
@@ -116,7 +107,5 @@ const styles = StyleSheet.create({
   slot: { flex: 1, height: 130, borderRadius: 20, alignItems: 'center', justifyContent: 'center', shadowOffset: { width: 0, height: 4 } },
   emptySlot: { backgroundColor: 'transparent' },
   miniRow: { flexDirection: 'row' },
-  miniCell: { width: 22, height: 22, borderRadius: 5, margin: 2 },
-  miniTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(255,255,255,0.32)' },
-  miniBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', backgroundColor: 'rgba(0,0,0,0.28)' },
+  miniCell: { width: 24, height: 24, margin: 2 },
 });

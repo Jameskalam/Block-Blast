@@ -29,6 +29,11 @@ const GLYPHS = {
   Rocket: '🚀',
   Medal: '🏅',
   Target: '🎯',
+  // Power-ups
+  Undo: '↩️',
+  Shuffle: '🔀',
+  Hammer: '🔨',
+  Clock: '⏳',
 };
 
 export default function Icon({ name, size = 20, color = '#fff', style }) {

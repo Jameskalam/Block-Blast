@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { GRID_SIZE } from '../engine/gameLogic';
+import Block from './Block';
 
 // Must match the styles below so drop-position math lines up with what's drawn.
 export const BOARD_BORDER = 3;
@@ -8,7 +9,7 @@ export const BOARD_PADDING = 8;
 export const CELL_MARGIN = 3;
 export const CELL_RADIUS = 8;
 
-export default function GridBoard({ grid, preview, onMeasure, measureRef, theme }) {
+export default function GridBoard({ grid, preview, onMeasure, measureRef, theme, onCellPress }) {
   const boardRef = useRef(null);
 
   // Report the board's position + size so the parent can convert a finger
@@ -59,38 +60,36 @@ export default function GridBoard({ grid, preview, onMeasure, measureRef, theme 
             const blockColor = hasBlock ? theme.blockColors[cellValue] : null;
             const inPreview = previewSet.has(`${r}_${c}`);
 
-            let backgroundColor = hasBlock ? blockColor : theme.emptyCell;
-            let borderColor = hasBlock ? 'rgba(255,255,255,0.4)' : theme.cellBorder;
-
-            if (inPreview) {
-              backgroundColor = previewValid ? previewColor : 'rgba(255,60,60,0.55)';
+            // Empty cell styling; filled cells are drawn by <Block/> instead.
+            let backgroundColor = theme.emptyCell;
+            let borderColor = theme.cellBorder;
+            if (inPreview && !hasBlock) {
+              // Ghost of where the dragged piece will land.
+              backgroundColor = previewValid ? previewColor : 'rgba(255,60,60,0.45)';
               borderColor = previewValid ? 'rgba(255,255,255,0.9)' : 'rgba(255,120,120,0.9)';
             }
 
+            // Only interactive while a power-up (the hammer) is armed.
+            const Cell = onCellPress ? Pressable : View;
+            const cellProps = onCellPress ? { onPress: () => onCellPress(r, c) } : {};
+
             return (
-              <View
+              <Cell
                 key={`${r}_${c}`}
+                {...cellProps}
                 style={[
                   styles.cell,
-                  {
-                    backgroundColor,
-                    borderColor,
-                    opacity: inPreview && !hasBlock ? 0.85 : 1,
-                  },
+                  // Keep borderWidth identical in both states and only hide the
+                  // border's COLOR. Dropping borderWidth to 0 changes the cell's
+                  // content box by 1px on every side, which made every square
+                  // visibly shift the moment a piece was placed.
+                  hasBlock
+                    ? { backgroundColor: 'transparent', borderColor: 'transparent' }
+                    : { backgroundColor, borderColor, opacity: inPreview ? 0.7 : 1 },
                 ]}
               >
-                {hasBlock ? (
-                  <>
-                    {/* top highlight */}
-                    <View style={styles.faceTop} />
-                    {/* bottom + right dark edges = raised 3D bevel */}
-                    <View style={styles.edgeBottom} />
-                    <View style={styles.edgeRight} />
-                    {/* glossy shine dot */}
-                    <View style={styles.shine} />
-                  </>
-                ) : null}
-              </View>
+                {hasBlock ? <Block color={blockColor} radius={CELL_RADIUS} /> : null}
+              </Cell>
             );
           })}
         </View>
@@ -114,52 +113,9 @@ const styles = StyleSheet.create({
     margin: 3,
     borderRadius: 8,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    // No alignItems/justifyContent here: the <Block> child sizes itself with
+    // flex, and centering would collapse it to zero width.
     overflow: 'hidden',
-  },
-  // Lit top face: brighter band across the upper half (light from top-left).
-  faceTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(255,255,255,0.30)',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  // Shaded bottom edge for a raised, chunky look.
-  edgeBottom: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '26%',
-    backgroundColor: 'rgba(0,0,0,0.28)',
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  // Shaded right edge to complete the bevel.
-  edgeRight: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 0,
-    width: '18%',
-    backgroundColor: 'rgba(0,0,0,0.16)',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  // Small bright highlight dot in the top-left corner for a glassy pop.
-  shine: {
-    position: 'absolute',
-    top: '12%',
-    left: '14%',
-    width: '24%',
-    height: '18%',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 6,
   },
 });
 
