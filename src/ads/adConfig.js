@@ -62,9 +62,9 @@ const TEST_IDS = {
 export const PUBLISHER_ID = 'ca-app-pub-7074226288393213';
 
 const PROD_IDS = {
-  banner: '',
-  rewarded: '',
-  interstitial: '', // not used yet
+  banner: 'ca-app-pub-7074226288393213/8967822318',
+  rewarded: 'ca-app-pub-7074226288393213/9526330712',
+  interstitial: '', // not created yet -- add a unit in AdMob before using
 };
 
 // Catch the two mistakes that actually happen: pasting an App ID (~) into a unit

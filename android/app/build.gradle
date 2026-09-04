@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.blockblast.game'
+    namespace 'com.blockmint.game'
     defaultConfig {
-        applicationId 'com.blockblast.game'
+        applicationId 'com.blockmint.game'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -101,15 +101,28 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // Play Store upload key. Credentials live in ~/.gradle/gradle.properties
+        // (machine-local, never committed). Only registered when they are present,
+        // so other clones can still build debug without the keystore.
+        if (project.hasProperty('BLOCKMINT_UPLOAD_STORE_PASSWORD')) {
+            release {
+                storeFile file(BLOCKMINT_UPLOAD_STORE_FILE)
+                storePassword BLOCKMINT_UPLOAD_STORE_PASSWORD
+                keyAlias BLOCKMINT_UPLOAD_KEY_ALIAS
+                keyPassword BLOCKMINT_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Sign with the upload key when it's configured; fall back to debug so
+            // a clone without the keystore can still run a local release build.
+            signingConfig project.hasProperty('BLOCKMINT_UPLOAD_STORE_PASSWORD')
+                ? signingConfigs.release
+                : signingConfigs.debug
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
