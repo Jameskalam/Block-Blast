@@ -24,7 +24,7 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.blockmint.game",
-      "versionCode": 1,
+      "versionCode": 2,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
@@ -47,6 +47,17 @@
         {
           "androidAppId": "ca-app-pub-7074226288393213~2266682598",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.1.0",
+            "minSdkVersion": 24
+          }
         }
       ]
     ]
