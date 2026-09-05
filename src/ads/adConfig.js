@@ -22,7 +22,7 @@ export const SHOW_ADS = true;
 //      set to your real App ID (the "~" one).
 //   3. You are building a release build for the Play Store, not testing locally.
 // ---------------------------------------------------------------------------
-export const USE_REAL_ADS = false;
+export const USE_REAL_ADS = true;
 
 // Google's public test IDs (safe + required during development).
 const TEST_IDS = {
@@ -103,16 +103,15 @@ export const IS_TEST_ADS = !useProd;
 // -----------------------------------------------------------------------------
 // Audience / compliance.
 //
-// This game is colorful and appeals to mixed ages, which makes it eligible for
-// Google Play's Families policy. We therefore opt into the STRICT settings:
-// child-directed treatment + G-rated + non-personalized ads only.
+// The Play Console listing declares a target audience of 13+ only (age groups
+// 5-8 and 9-12 are NOT selected), so the app is outside Families policy and may
+// serve personalized ads, which pay significantly more than non-personalized.
 //
-// Trade-off: this lowers ad revenue (non-personalized ads pay less), but serving
-// personalized ads to children violates COPPA/Play policy and risks removal.
-// If you later declare the app as 13+ ONLY in the Play Console, you can set
-// CHILD_DIRECTED = false to earn more.
+// KEEP THIS IN SYNC WITH THE PLAY CONSOLE. If under-13 age groups are ever added
+// back to the target audience, this must return to `true` -- serving personalized
+// ads to children violates COPPA/Play policy and risks app removal.
 // -----------------------------------------------------------------------------
-export const CHILD_DIRECTED = true;
+export const CHILD_DIRECTED = false;
 
 export const AD_REQUEST_OPTIONS = {
   requestNonPersonalizedAdsOnly: CHILD_DIRECTED,
