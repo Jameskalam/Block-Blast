@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.keystore
+!android/app/debug.keystore
+android/app/build/
+android/build/
+.idea/
+.DS_Store
+*.log
+*.apk
+*.aab
+
