@@ -25,7 +25,7 @@
     "@babel/core": "^7.20.0"
   },
   "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-3940256099942544~3347511713"
+    "android_app_id": "ca-app-pub-7074226288393213~2266682598"
   },
   "private": true
 }

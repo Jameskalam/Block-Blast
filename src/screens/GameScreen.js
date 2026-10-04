@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../components/Header';
 import GridBoard, { BOARD_BORDER, BOARD_PADDING, CELL_MARGIN, CELL_RADIUS } from '../components/GridBoard';
@@ -79,6 +79,7 @@ export default function GameScreen({
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [hasUsedAdResume, setHasUsedAdResume] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Drag state
   const [drag, setDrag] = useState(null); // { piece, x, y } in local coords
@@ -487,6 +488,43 @@ export default function GameScreen({
     );
   };
 
+  const handleRequestExit = useCallback(() => {
+    soundEngine.playPopSound();
+    setShowExitConfirm(true);
+  }, []);
+
+  const handleConfirmExit = useCallback(() => {
+    soundEngine.playPopSound();
+    setShowExitConfirm(false);
+    onGoHome();
+  }, [onGoHome]);
+
+  const handleCancelExit = useCallback(() => {
+    soundEngine.playPopSound();
+    setShowExitConfirm(false);
+  }, []);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (showExitConfirm) {
+        setShowExitConfirm(false);
+        return true;
+      }
+      if (isAdModalOpen) {
+        return true;
+      }
+      if (isGameOver) {
+        onGoHome();
+        return true;
+      }
+      setShowExitConfirm(true);
+      return true;
+    };
+
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSub.remove();
+  }, [showExitConfirm, isGameOver, isAdModalOpen, onGoHome]);
+
   return (
     <View
       ref={rootViewRef}
@@ -500,7 +538,7 @@ export default function GameScreen({
         isMuted={isMuted}
         onToggleSound={onToggleSound}
         onOpenThemes={onOpenThemes}
-        onGoHome={onGoHome}
+        onGoHome={handleRequestExit}
         theme={currentTheme}
       />
 
@@ -534,6 +572,46 @@ export default function GameScreen({
         onSkip={handleAdSkip}
         theme={currentTheme}
       />
+
+      {/* Exit Confirmation Modal */}
+      <Modal visible={showExitConfirm} transparent animationType="fade" onRequestClose={handleCancelExit}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.confirmCard, { backgroundColor: currentTheme.bgSolid, borderColor: currentTheme.cellBorder }]}>
+            <View style={[styles.confirmIconBadge, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444' }]}>
+              <Icon name="AlertTriangle" size={32} color="#ef4444" />
+            </View>
+
+            <Text style={styles.confirmTitle}>Quit Game?</Text>
+            <Text style={[styles.confirmMessage, { color: currentTheme.textMuted }]}>
+              Your current progress and score of{' '}
+              <Text style={{ color: currentTheme.accent, fontWeight: '800' }}>{score.toLocaleString()}</Text>
+              {' '}will be lost. Are you sure you want to quit?
+            </Text>
+
+            <View style={styles.confirmActions}>
+              <Pressable
+                onPress={handleCancelExit}
+                style={({ pressed }) => [
+                  styles.cancelBtn,
+                  { backgroundColor: currentTheme.accent, transform: [{ scale: pressed ? 0.97 : 1 }] },
+                ]}
+              >
+                <Text style={styles.cancelBtnText}>KEEP PLAYING</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleConfirmExit}
+                style={({ pressed }) => [
+                  styles.quitBtn,
+                  { borderColor: 'rgba(239, 68, 68, 0.5)', transform: [{ scale: pressed ? 0.97 : 1 }] },
+                ]}
+              >
+                <Text style={styles.quitBtnText}>QUIT TO HOME</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={isGameOver} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
@@ -586,4 +664,26 @@ const styles = StyleSheet.create({
   homeLink: { marginTop: 14, padding: 6 },
   homeLinkText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
   gameOverBanner: { width: '100%', marginTop: 16, borderRadius: 12, overflow: 'hidden' },
+  confirmCard: {
+    width: '100%', maxWidth: 340, borderWidth: 2, borderRadius: 24, paddingHorizontal: 22,
+    paddingVertical: 24, alignItems: 'center', shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 15, elevation: 12,
+  },
+  confirmIconBadge: {
+    width: 60, height: 60, borderRadius: 30, borderWidth: 2, alignItems: 'center',
+    justifyContent: 'center', marginBottom: 12,
+  },
+  confirmTitle: { color: '#ffffff', fontSize: 22, fontWeight: '900', letterSpacing: 0.5 },
+  confirmMessage: { fontSize: 14, textAlign: 'center', marginTop: 8, marginBottom: 22, lineHeight: 20, paddingHorizontal: 8 },
+  confirmActions: { width: '100%', gap: 10 },
+  cancelBtn: {
+    width: '100%', borderRadius: 16, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  cancelBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  quitBtn: {
+    width: '100%', borderRadius: 16, paddingVertical: 13, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  quitBtnText: { color: '#f87171', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
 });

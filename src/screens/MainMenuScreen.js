@@ -54,11 +54,16 @@ export default function MainMenuScreen({
         <View style={[styles.logo, { backgroundColor: theme.accent, shadowColor: theme.accent }]}>
           <Icon name="Zap" size={44} color="#ffffff" />
         </View>
-        <Text style={styles.title}>BLOCK MINT</Text>
+
+        <Text style={styles.title}>
+          <Text style={styles.titleBlock}>BLOCK </Text>
+          <Text style={styles.titleMint}>MINT</Text>
+        </Text>
+
         <View style={styles.subtitleRow}>
-          <Icon name="Sparkles" size={14} color={theme.accent} />
-          <Text style={[styles.subtitle, { color: theme.accent }]}>POP & MATCH PUZZLE</Text>
-          <Icon name="Sparkles" size={14} color={theme.accent} />
+          <Icon name="Sparkles" size={13} color="#34d399" />
+          <Text style={styles.subtitle}>POP & MATCH PUZZLE</Text>
+          <Icon name="Sparkles" size={13} color="#34d399" />
         </View>
       </View>
 
@@ -168,13 +173,27 @@ const styles = StyleSheet.create({
   iconBtn: { borderRadius: 14, padding: 10, borderWidth: 1 },
   hero: { alignItems: 'center', marginTop: 16 },
   logo: {
-    width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)',
-    shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 15, elevation: 10,
+    width: 76, height: 76, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+    shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.45, shadowRadius: 15, elevation: 10,
   },
-  title: { fontSize: 44, fontWeight: '900', letterSpacing: 2, color: '#ffffff', marginBottom: 6 },
-  subtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  subtitle: { fontWeight: '800', fontSize: 13, letterSpacing: 3 },
+  title: {
+    fontSize: 40, letterSpacing: 2, marginBottom: 4, textAlign: 'center',
+    includeFontPadding: false,
+  },
+  titleBlock: {
+    color: '#ffffff', fontFamily: 'sans-serif-black', fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6,
+  },
+  titleMint: {
+    color: '#34d399', fontFamily: 'sans-serif-black', fontWeight: '900',
+    textShadowColor: 'rgba(16,185,129,0.6)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
+  },
+  subtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  subtitle: {
+    fontFamily: 'sans-serif-medium', fontWeight: '800', fontSize: 12, letterSpacing: 3,
+    color: '#34d399',
+  },
   actions: { width: '100%', maxWidth: 380, alignItems: 'center', gap: 16, marginVertical: 16 },
   playBtn: {
     width: '100%', borderRadius: 24, paddingVertical: 20, flexDirection: 'row', alignItems: 'center',

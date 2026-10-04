@@ -31,9 +31,9 @@ const TEST_IDS = {
 // PASTE YOUR REAL ADMOB PRODUCTION IDS HERE BEFORE PUBLISHING
 // -----------------------------------------------------------------------------
 export const PROD_IDS = {
-  banner: '',       // e.g. 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'
-  rewarded: '',     // e.g. 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'
-  interstitial: '', // e.g. 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'
+  banner: 'ca-app-pub-7074226288393213/8967822318',
+  rewarded: 'ca-app-pub-7074226288393213/9526330712',
+  interstitial: '', // optional
 };
 
 export const AD_UNITS = {

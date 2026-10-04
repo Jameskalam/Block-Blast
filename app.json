@@ -31,7 +31,7 @@
         "VIBRATE"
       ],
       "config": {
-        "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713"
+        "googleMobileAdsAppId": "ca-app-pub-7074226288393213~2266682598"
       }
     },
     "web": {
@@ -42,12 +42,12 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713"
+          "androidAppId": "ca-app-pub-7074226288393213~2266682598"
         }
       ]
     ]
   },
   "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-3940256099942544~3347511713"
+    "android_app_id": "ca-app-pub-7074226288393213~2266682598"
   }
 }
