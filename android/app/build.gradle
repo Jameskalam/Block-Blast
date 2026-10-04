@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.blockblast.game'
+    namespace 'com.blockmint.game'
     defaultConfig {
-        applicationId 'com.blockblast.game'
+        applicationId 'com.blockmint.game'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

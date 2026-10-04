@@ -54,7 +54,7 @@ export default function MainMenuScreen({
         <View style={[styles.logo, { backgroundColor: theme.accent, shadowColor: theme.accent }]}>
           <Icon name="Zap" size={44} color="#ffffff" />
         </View>
-        <Text style={styles.title}>BLOCK BLAST</Text>
+        <Text style={styles.title}>BLOCK MINT</Text>
         <View style={styles.subtitleRow}>
           <Icon name="Sparkles" size={14} color={theme.accent} />
           <Text style={[styles.subtitle, { color: theme.accent }]}>POP & MATCH PUZZLE</Text>

@@ -1,4 +1,4 @@
-package com.blockblast.game
+package com.blockmint.game
 
 import android.os.Build
 import android.os.Bundle

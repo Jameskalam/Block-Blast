@@ -2,7 +2,7 @@ import { Linking } from 'react-native';
 
 // Android application id (must match app.json > expo.android.package). This is
 // what the Play Store uses to identify your app.
-export const ANDROID_PACKAGE = 'com.blockblast.game';
+export const ANDROID_PACKAGE = 'com.blockmint.game';
 
 // Deep link that opens the app's Play Store page directly in the Play Store app
 // (falls back to the web listing if the store app isn't available).

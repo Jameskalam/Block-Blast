@@ -3,7 +3,11 @@ import { Animated, Text, View, StyleSheet } from 'react-native';
 
 // Color + subtitle per difficulty phase so the wave reads at a glance.
 const PHASE_STYLE = {
-  'Very Easy': { color: '#22c55e', sub: 'Relax & have fun!' },
+  Starter: { color: '#38ef7d', sub: 'Easy & Fun Blocks!' },
+  'Candy Blast': { color: '#ff5ecb', sub: '🍬 Sweet New Colors & Shapes!' },
+  'Rainbow Pop': { color: '#00d4ff', sub: '🌈 Rainbow Master Challenge!' },
+  'Bonus Wave': { color: '#ffd21e', sub: '⭐ Clear the Board!' },
+  'Very Easy': { color: '#38ef7d', sub: 'Relax & have fun!' },
   Easy: { color: '#38ef7d', sub: 'Keep it going!' },
   Medium: { color: '#fbbf24', sub: 'Getting spicy!' },
   Complex: { color: '#fb7185', sub: 'Big challenge!' },
@@ -36,22 +40,25 @@ export default function StageBanner({ phase, theme }) {
       Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
         setVisible(false);
       });
-    }, 1700);
+    }, 1900);
     return () => clearTimeout(timer);
   }, [phase]);
 
   if (!visible || !phase) return null;
 
   const info = PHASE_STYLE[phase.name] || { color: '#fbbf24', sub: 'New shapes!' };
+  const bannerColor = phase.color || info.color;
+  const bannerTitle = phase.displayName || phase.name;
+  const bannerSub = phase.sub || info.sub;
 
   return (
     <View style={styles.wrap} pointerEvents="none">
       <Animated.View style={{ opacity, transform: [{ scale }, { translateY }], alignItems: 'center' }}>
-        <Text style={styles.small}>DIFFICULTY</Text>
-        <Text style={[styles.big, { color: '#0f172a', backgroundColor: info.color, shadowColor: info.color }]}>
-          {phase.name.toUpperCase()}
+        <Text style={styles.small}>LEVEL UP</Text>
+        <Text style={[styles.big, { color: '#ffffff', backgroundColor: bannerColor, shadowColor: bannerColor }]}>
+          {bannerTitle.toUpperCase()}
         </Text>
-        <Text style={[styles.sub, { color: theme.text }]}>{info.sub}</Text>
+        <Text style={[styles.sub, { color: theme.text }]}>{bannerSub}</Text>
       </Animated.View>
     </View>
   );

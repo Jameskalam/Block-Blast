@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Block Blast",
-    "slug": "block-blast",
+    "name": "Block Mint",
+    "slug": "block-mint",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,14 +16,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.blockblast.game"
+      "bundleIdentifier": "com.blockmint.game"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
-      "package": "com.blockblast.game",
+      "package": "com.blockmint.game",
       "versionCode": 1,
       "permissions": [
         "INTERNET",
@@ -38,7 +38,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713"
+        }
+      ]
     ]
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3940256099942544~3347511713"
   }
 }

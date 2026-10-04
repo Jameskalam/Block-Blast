@@ -1,58 +1,46 @@
 // -----------------------------------------------------------------------------
-// Central ad configuration.
+// Central AdMob configuration.
 //
-// Real ad serving (via react-native-google-mobile-ads) is NOT wired up yet.
-// This file is the single place to manage ad unit IDs and the on/off switch so
-// that dropping in the real SDK later requires no UI changes.
+// Integrated with `react-native-google-mobile-ads`.
 //
-// The IDs below are Google's official AdMob TEST unit IDs. Replace them with
-// your real unit IDs when you're ready to go live (and flip USE_REAL_ADS).
+// When PROD_IDS are left empty (''), the app safely serves official Google
+// TEST ads so you can verify rendering and rewarded logic without risking
+// AdMob account suspension for invalid traffic.
+//
+// When you're ready for production:
+// 1. Paste your real AdMob unit IDs into PROD_IDS below.
+// 2. Ensure your real AdMob App ID is set in app.json, package.json, and AndroidManifest.xml.
 // -----------------------------------------------------------------------------
 
-import { Platform } from 'react-native';
+import { TestIds } from 'react-native-google-mobile-ads';
 
-// Master switch for the whole ad system. ON: ads are monetization goal for v1.
-// While USE_REAL_ADS is false, ad slots show labeled placeholders so you can
-// see exactly where ads land before wiring the real AdMob SDK.
+// Master switch for the whole ad system.
 export const SHOW_ADS = true;
 
-// Flip to true once react-native-google-mobile-ads is installed + configured.
-export const USE_REAL_ADS = false;
+// Active real native Google Mobile Ads SDK.
+export const USE_REAL_ADS = true;
 
-// Google's public test IDs (safe to use during development).
+// Official Google AdMob Test Unit IDs
 const TEST_IDS = {
-  banner: Platform.select({
-    ios: 'ca-app-pub-3940256099942544/2934735716',
-    android: 'ca-app-pub-3940256099942544/6300978111',
-    default: 'ca-app-pub-3940256099942544/6300978111',
-  }),
-  rewarded: Platform.select({
-    ios: 'ca-app-pub-3940256099942544/1712485313',
-    android: 'ca-app-pub-3940256099942544/5224354917',
-    default: 'ca-app-pub-3940256099942544/5224354917',
-  }),
-  interstitial: Platform.select({
-    ios: 'ca-app-pub-3940256099942544/4411468910',
-    android: 'ca-app-pub-3940256099942544/1033173712',
-    default: 'ca-app-pub-3940256099942544/1033173712',
-  }),
+  banner: TestIds.BANNER,
+  rewarded: TestIds.REWARDED,
+  interstitial: TestIds.INTERSTITIAL,
 };
 
-// TODO: put your real AdMob unit IDs here before shipping.
-const PROD_IDS = {
-  banner: '',
-  rewarded: '',
-  interstitial: '',
+// -----------------------------------------------------------------------------
+// PASTE YOUR REAL ADMOB PRODUCTION IDS HERE BEFORE PUBLISHING
+// -----------------------------------------------------------------------------
+export const PROD_IDS = {
+  banner: '',       // e.g. 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'
+  rewarded: '',     // e.g. 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'
+  interstitial: '', // e.g. 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'
 };
-
-const IDS = USE_REAL_ADS && PROD_IDS.banner ? PROD_IDS : TEST_IDS;
 
 export const AD_UNITS = {
-  banner: IDS.banner,
-  rewarded: IDS.rewarded,
-  interstitial: IDS.interstitial,
+  banner: (PROD_IDS.banner && PROD_IDS.banner.trim()) ? PROD_IDS.banner : TEST_IDS.banner,
+  rewarded: (PROD_IDS.rewarded && PROD_IDS.rewarded.trim()) ? PROD_IDS.rewarded : TEST_IDS.rewarded,
+  interstitial: (PROD_IDS.interstitial && PROD_IDS.interstitial.trim()) ? PROD_IDS.interstitial : TEST_IDS.interstitial,
 };
 
-// Standard banner height (dp) used to reserve layout space so the UI doesn't
-// jump when a banner loads.
+// Standard adaptive banner reserved height (dp) to prevent layout jumping
 export const BANNER_HEIGHT = 50;

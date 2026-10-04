@@ -8,6 +8,7 @@ import ThemeSelector from './src/components/ThemeSelector';
 import { THEMES } from './src/styles/themes';
 import { storage } from './src/engine/storage';
 import { soundEngine } from './src/engine/soundEngine';
+import mobileAds from 'react-native-google-mobile-ads';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('main');
@@ -39,6 +40,8 @@ export default function App() {
     let cancelled = false;
     // Warm up the audio engine (synthesizes + preloads the sound clips).
     soundEngine.init();
+    // Warm up the Mobile Ads SDK.
+    mobileAds().initialize().catch(() => {});
     storage.hydrate().then((saved) => {
       if (cancelled) return;
       setThemeId(saved.activeTheme);

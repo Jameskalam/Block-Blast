@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../components/Header';
 import GridBoard, { BOARD_BORDER, BOARD_PADDING, CELL_MARGIN, CELL_RADIUS } from '../components/GridBoard';
 import PieceTray from '../components/PieceTray';
@@ -20,7 +21,8 @@ import {
   clearSpaceForResume,
   GRID_SIZE,
 } from '../engine/gameLogic';
-import { getRandomPieceSet, phaseNameForRound, phaseIndexForRound } from '../engine/shapes';
+import { getRandomPieceSet, getPhaseForBlasts, phaseNameForRound, phaseIndexForRound } from '../engine/shapes';
+import { THEMES } from '../styles/themes';
 import { soundEngine } from '../engine/soundEngine';
 import { storage } from '../engine/storage';
 import { placePraise, clearPraise } from '../engine/praise';
@@ -56,7 +58,18 @@ export default function GameScreen({
   const isOnline = useOnlineStatus();
   const [grid, setGrid] = useState(() => createEmptyGrid());
   const [round, setRound] = useState(0);
-  const [pieceSet, setPieceSet] = useState(() => getRandomPieceSet(3, 0));
+  const [runBlasts, setRunBlasts] = useState(0);
+  const [activeThemeId, setActiveThemeId] = useState(theme.id);
+  const currentTheme = THEMES[activeThemeId] || theme;
+
+  // Sync with user's equipped theme whenever changed before Phase 2
+  useEffect(() => {
+    if (runBlasts < 5) {
+      setActiveThemeId(theme.id);
+    }
+  }, [theme.id, runBlasts]);
+
+  const [pieceSet, setPieceSet] = useState(() => getRandomPieceSet(3, 0, 0));
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(() => storage.getCoins());
   const [coinsThisRun, setCoinsThisRun] = useState(0);
@@ -68,16 +81,51 @@ export default function GameScreen({
   const [hasUsedAdResume, setHasUsedAdResume] = useState(false);
 
   // Drag state
-  const [drag, setDrag] = useState(null); // { piece, x, y } in window coords
+  const [drag, setDrag] = useState(null); // { piece, x, y } in local coords
   const [preview, setPreview] = useState(null); // { matrix, row, col, valid, colorIndex }
   const [blasts, setBlasts] = useState([]); // [{ id, x, y, colors?, shards?, spread? }]
-  const [phaseBanner, setPhaseBanner] = useState(null); // { name } shown on phase change
+  const [phaseBanner, setPhaseBanner] = useState(null); // { name, displayName, sub, color }
 
-  const boardRectRef = useRef(null); // { x, y, width, height } in window coords
+  const insets = useSafeAreaInsets();
+  const rootOffsetRef = useRef({ x: insets.left, y: insets.top });
+  const rootViewRef = useRef(null);
+  const rawBoardRectRef = useRef(null);
+  const boardRectRef = useRef(null); // { x, y, width, height } in GameScreen local coords
   const boardMeasureRef = useRef(null); // fn to re-measure the board on demand
-  const lastDragPosRef = useRef(null); // last finger position during a drag
+  const lastDragPosRef = useRef(null); // last finger position in GameScreen local coords
   const gridRef = useRef(grid);
   gridRef.current = grid;
+
+  const handleRootLayout = useCallback(() => {
+    rootViewRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      if (Number.isFinite(pageX) && Number.isFinite(pageY)) {
+        rootOffsetRef.current = { x: pageX, y: pageY };
+        if (rawBoardRectRef.current) {
+          boardRectRef.current = {
+            x: rawBoardRectRef.current.x - pageX,
+            y: rawBoardRectRef.current.y - pageY,
+            width: rawBoardRectRef.current.width,
+            height: rawBoardRectRef.current.height,
+          };
+        }
+      }
+    });
+  }, []);
+
+  const handleBoardMeasure = useCallback((rect) => {
+    rawBoardRectRef.current = rect;
+    boardRectRef.current = {
+      x: rect.x - rootOffsetRef.current.x,
+      y: rect.y - rootOffsetRef.current.y,
+      width: rect.width,
+      height: rect.height,
+    };
+  }, []);
+
+  const toLocal = (pageX, pageY) => ({
+    x: pageX - rootOffsetRef.current.x,
+    y: pageY - rootOffsetRef.current.y,
+  });
 
   // Award coins (persistent collectible) and notify the parent so the menu and
   // header stay in sync.
@@ -102,7 +150,9 @@ export default function GameScreen({
   const handleRestart = () => {
     setGrid(createEmptyGrid());
     setRound(0);
-    setPieceSet(getRandomPieceSet(3, 0));
+    setRunBlasts(0);
+    setActiveThemeId(theme.id);
+    setPieceSet(getRandomPieceSet(3, 0, 0));
     setDrag(null);
     setPreview(null);
     setBlasts([]);
@@ -127,9 +177,9 @@ export default function GameScreen({
     return inner / GRID_SIZE;
   };
 
-  // Convert a finger position to the target top-left grid cell for `matrix`,
+  // Convert a local finger position to the target top-left grid cell for `matrix`,
   // matching where the floating piece is visually drawn (via floatOrigin).
-  const computeTarget = (matrix, fingerX, fingerY) => {
+  const computeTarget = (matrix, localX, localY) => {
     const rect = boardRectRef.current;
     if (!rect) return null;
     const cellSize = getCellSize();
@@ -140,22 +190,37 @@ export default function GameScreen({
     const pieceW = cols * cellSize;
     const pieceH = rows * cellSize;
 
-    const { left: floatLeft, top: floatTop } = floatOrigin(fingerX, fingerY, pieceW, pieceH);
+    const { left: floatLeft, top: floatTop } = floatOrigin(localX, localY, pieceW, pieceH);
 
     const innerX = rect.x + BOARD_BORDER + BOARD_PADDING;
     const innerY = rect.y + BOARD_BORDER + BOARD_PADDING;
 
-    let col = Math.round((floatLeft - innerX) / cellSize);
-    let row = Math.round((floatTop - innerY) / cellSize);
+    const rawCol = (floatLeft - innerX) / cellSize;
+    const rawRow = (floatTop - innerY) / cellSize;
 
-    // Clamp so a piece nudged past an edge still snaps onto the board, letting
-    // the last row/column be reached without hovering exactly on the boundary.
-    col = Math.max(0, Math.min(col, GRID_SIZE - cols));
-    row = Math.max(0, Math.min(row, GRID_SIZE - rows));
+    const maxCol = GRID_SIZE - cols;
+    const maxRow = GRID_SIZE - rows;
+
+    // Proximity check: don't snap/show preview if the dragged block is too far off the board.
+    // Gives a comfortable ~0.8 cell margin around the board edges without lingering when far below.
+    if (
+      rawCol < -0.8 ||
+      rawCol > maxCol + 0.8 ||
+      rawRow < -0.8 ||
+      rawRow > maxRow + 0.8
+    ) {
+      return null;
+    }
+
+    let col = Math.round(rawCol);
+    let row = Math.round(rawRow);
+
+    col = Math.max(0, Math.min(col, maxCol));
+    row = Math.max(0, Math.min(row, maxRow));
     return { row, col };
   };
 
-  // Center of a grid cell in window coordinates (for positioning blasts).
+  // Center of a grid cell in local coordinates (for positioning blasts).
   const cellCenter = (r, c) => {
     const rect = boardRectRef.current;
     const cellSize = getCellSize();
@@ -170,24 +235,26 @@ export default function GameScreen({
 
   // ---- Drag handlers (called from PieceTray) ------------------------------
 
-  const handleDragStart = (piece, x, y) => {
+  const handleDragStart = (piece, pageX, pageY) => {
     if (isGameOver || isAdModalOpen) return;
     soundEngine.playPopSound();
     // Refresh the board rect in case its position shifted (fold/rotate/scroll).
     if (boardMeasureRef.current) boardMeasureRef.current();
+    const { x, y } = toLocal(pageX, pageY);
     lastDragPosRef.current = { x, y };
     setDrag({ piece, x, y });
     updatePreview(piece, x, y);
   };
 
-  const handleDragMove = (piece, x, y) => {
+  const handleDragMove = (piece, pageX, pageY) => {
+    const { x, y } = toLocal(pageX, pageY);
     lastDragPosRef.current = { x, y };
     setDrag((d) => (d ? { ...d, x, y } : d));
     updatePreview(piece, x, y);
   };
 
-  const updatePreview = (piece, x, y) => {
-    const target = computeTarget(piece.matrix, x, y);
+  const updatePreview = (piece, localX, localY) => {
+    const target = computeTarget(piece.matrix, localX, localY);
     if (!target) {
       setPreview(null);
       return;
@@ -202,23 +269,33 @@ export default function GameScreen({
     });
   };
 
-  const handleDragEnd = (piece, x, y) => {
+  const handleDragEnd = (piece, pageX, pageY) => {
     setDrag(null);
     setPreview(null);
     if (!piece) return;
 
-    // Fall back to the last tracked position if the release event reports 0/NaN
-    // (can happen on a tap with no movement).
     const last = lastDragPosRef.current;
-    const endX = Number.isFinite(x) && x !== 0 ? x : last?.x;
-    const endY = Number.isFinite(y) && y !== 0 ? y : last?.y;
+    let endX, endY;
+    if (Number.isFinite(pageX) && pageX !== 0 && Number.isFinite(pageY) && pageY !== 0) {
+      const local = toLocal(pageX, pageY);
+      endX = local.x;
+      endY = local.y;
+    } else {
+      endX = last?.x;
+      endY = last?.y;
+    }
     if (endX == null || endY == null) return;
 
     const target = computeTarget(piece.matrix, endX, endY);
-    const valid = target && canPlacePiece(gridRef.current, piece.matrix, target.row, target.col);
+    if (!target) {
+      // Released outside the board area: cancelled drag, no blast needed.
+      return;
+    }
+
+    const valid = canPlacePiece(gridRef.current, piece.matrix, target.row, target.col);
 
     if (!valid) {
-      // Invalid drop: flash a red spark where the finger released and bail.
+      // Invalid drop on occupied cells: flash a red spark where the piece hovered.
       soundEngine.playPopSound();
       spawnBlasts([
         { id: Date.now(), x: endX, y: endY - FINGER_GAP, colors: ['#ff3b3b', '#ff7a00', '#ffffff'], shards: 8, spread: 40 },
@@ -248,7 +325,28 @@ export default function GameScreen({
     // Coins: a small reward just for placing, more for clearing lines.
     let coinsEarned = 1;
 
+    let latestBlasts = runBlasts;
     if (clearResult.totalLinesCleared > 0) {
+      latestBlasts = runBlasts + clearResult.totalLinesCleared;
+      setRunBlasts(latestBlasts);
+
+      const prevPhase = getPhaseForBlasts(runBlasts);
+      const nextPhase = getPhaseForBlasts(latestBlasts);
+
+      // Phase change when hitting blast milestones (e.g. 5-6 blasts for Phase 2: Candy Pop)
+      if (nextPhase.name !== prevPhase.name) {
+        setPhaseBanner({
+          name: nextPhase.name,
+          displayName: nextPhase.displayName,
+          sub: nextPhase.bannerSub,
+          color: nextPhase.bannerColor,
+        });
+        soundEngine.playRewardSound();
+        if (nextPhase.themeId && THEMES[nextPhase.themeId]) {
+          setActiveThemeId(nextPhase.themeId);
+        }
+      }
+
       const newStreak = comboStreak + 1;
       setComboStreak(newStreak);
       addedScore += clearResult.lineScore * (1 + newStreak * 0.5);
@@ -265,12 +363,12 @@ export default function GameScreen({
       clearResult.clearedCells.forEach((cell, i) => {
         const center = cellCenter(cell.r, cell.c);
         if (!center) return;
-        const cellColor = theme.blockColors[cell.color] || theme.accent;
+        const cellColor = currentTheme.blockColors[cell.color] || currentTheme.accent;
         blastItems.push({
           id: Date.now() + i,
           x: center.x,
           y: center.y,
-          colors: [cellColor, '#ffffff', theme.accent],
+          colors: [cellColor, '#ffffff', currentTheme.accent],
           shards: 8,
           spread: 42,
         });
@@ -302,16 +400,10 @@ export default function GameScreen({
 
     let nextPieceSet = updatedPieceSet;
     if (allUsed) {
-      // New round: advance the cyclic difficulty and refill the tray.
+      // New round: advance the cyclic difficulty and refill the tray based on blast progress
       const nextRound = round + 1;
       setRound(nextRound);
-      nextPieceSet = getRandomPieceSet(3, nextRound);
-
-      // Announce when the difficulty phase changes (gentle wave feedback).
-      if (phaseIndexForRound(nextRound) !== phaseIndexForRound(round)) {
-        setPhaseBanner({ name: phaseNameForRound(nextRound) });
-        soundEngine.playRewardSound();
-      }
+      nextPieceSet = getRandomPieceSet(3, nextRound, latestBlasts);
     }
 
     setGrid(finalGrid);
@@ -329,17 +421,17 @@ export default function GameScreen({
     }
   };
 
-  const handleAdReward = () => {
+  const handleAdReward = useCallback(() => {
     setIsAdModalOpen(false);
     setHasUsedAdResume(true);
-    setGrid(clearSpaceForResume(grid));
+    setGrid(clearSpaceForResume(gridRef.current));
     setComboText('SAVED! KEEP GOING!');
-  };
+  }, []);
 
-  const handleAdSkip = () => {
+  const handleAdSkip = useCallback(() => {
     setIsAdModalOpen(false);
     setIsGameOver(true);
-  };
+  }, []);
 
   // ---- Floating dragged piece ---------------------------------------------
 
@@ -347,7 +439,7 @@ export default function GameScreen({
     if (!drag) return null;
     const cellSize = getCellSize() || 34;
     const matrix = drag.piece.matrix;
-    const color = theme.blockColors[drag.piece.colorIndex] || theme.accent;
+    const color = currentTheme.blockColors[drag.piece.colorIndex] || currentTheme.accent;
     const cols = matrix[0].length;
     const rows = matrix.length;
     const pieceW = cols * cellSize;
@@ -396,7 +488,11 @@ export default function GameScreen({
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.bgSolid }]}>
+    <View
+      ref={rootViewRef}
+      onLayout={handleRootLayout}
+      style={[styles.root, { backgroundColor: currentTheme.bgSolid }]}
+    >
       <Header
         score={score}
         highScore={highScore}
@@ -405,20 +501,18 @@ export default function GameScreen({
         onToggleSound={onToggleSound}
         onOpenThemes={onOpenThemes}
         onGoHome={onGoHome}
-        theme={theme}
+        theme={currentTheme}
       />
 
       <View style={styles.boardWrap}>
         <GridBoard
           grid={grid}
           preview={preview}
-          onMeasure={(rect) => {
-            boardRectRef.current = rect;
-          }}
+          onMeasure={handleBoardMeasure}
           measureRef={boardMeasureRef}
-          theme={theme}
+          theme={currentTheme}
         />
-        <ComboOverlay comboText={comboText} theme={theme} />
+        <ComboOverlay comboText={comboText} theme={currentTheme} />
       </View>
 
       <PieceTray
@@ -427,30 +521,30 @@ export default function GameScreen({
         onDragStart={handleDragStart}
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
-        theme={theme}
+        theme={currentTheme}
       />
 
       {renderDragLayer()}
       <BlastLayer blasts={blasts} />
-      <StageBanner phase={phaseBanner} theme={theme} />
+      <StageBanner phase={phaseBanner} theme={currentTheme} />
 
       <RewardedAdModal
         isOpen={isAdModalOpen}
         onReward={handleAdReward}
         onSkip={handleAdSkip}
-        theme={theme}
+        theme={currentTheme}
       />
 
       <Modal visible={isGameOver} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: theme.bgSolid, borderColor: theme.cellBorder }]}>
+          <View style={[styles.modalCard, { backgroundColor: currentTheme.bgSolid, borderColor: currentTheme.cellBorder }]}>
             <Icon name={score > startHighScore ? 'Crown' : 'Star'} size={48} color="#fbbf24" />
             <Text style={styles.gameOverTitle}>
               {score > startHighScore ? 'NEW BEST!' : 'GREAT TRY!'}
             </Text>
-            <Text style={[styles.gameOverScore, { color: theme.textMuted }]}>
+            <Text style={[styles.gameOverScore, { color: currentTheme.textMuted }]}>
               Score:{' '}
-              <Text style={{ color: theme.accent, fontSize: 18, fontWeight: '800' }}>{score.toLocaleString()}</Text>
+              <Text style={{ color: currentTheme.accent, fontSize: 18, fontWeight: '800' }}>{score.toLocaleString()}</Text>
             </Text>
 
             <View style={[styles.coinsEarned, { borderColor: '#fbbf24' }]}>
@@ -458,17 +552,17 @@ export default function GameScreen({
               <Text style={styles.coinsEarnedText}>+{coinsThisRun.toLocaleString()} coins earned!</Text>
             </View>
 
-            <Pressable onPress={handleRestart} style={[styles.playAgain, { backgroundColor: theme.accent }]}>
+            <Pressable onPress={handleRestart} style={[styles.playAgain, { backgroundColor: currentTheme.accent }]}>
               <Icon name="Rocket" size={22} color="#ffffff" />
               <Text style={styles.playAgainText}>PLAY AGAIN</Text>
             </Pressable>
             <Pressable onPress={onGoHome} style={styles.homeLink}>
-              <Text style={[styles.homeLinkText, { color: theme.textMuted }]}>Back to Home</Text>
+              <Text style={[styles.homeLinkText, { color: currentTheme.textMuted }]}>Back to Home</Text>
             </Pressable>
 
             {/* Banner ad on the game-over screen (online only). */}
             <View style={styles.gameOverBanner}>
-              <BannerAd theme={theme} />
+              <BannerAd theme={currentTheme} />
             </View>
           </View>
         </View>
