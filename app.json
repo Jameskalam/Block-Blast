@@ -23,8 +23,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
-      "package": "com.blockmint.game",
-      "versionCode": 1,
+      "package": "com.blockmint.puzzle",
+      "versionCode": 2,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
