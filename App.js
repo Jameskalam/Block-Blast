@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import MainMenuScreen from './src/screens/MainMenuScreen';
 import GameScreen from './src/screens/GameScreen';
 import ThemeSelector from './src/components/ThemeSelector';
+import SettingsModal from './src/components/SettingsModal';
 import { THEMES } from './src/styles/themes';
 import { storage } from './src/engine/storage';
 import { soundEngine } from './src/engine/soundEngine';
@@ -14,6 +15,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState('main');
   const [themeId, setThemeId] = useState(() => storage.getActiveTheme());
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [highScore, setHighScore] = useState(() => storage.getHighScore());
   const [totalBlasts, setTotalBlasts] = useState(() => storage.getTotalBlasts());
   const [gamesPlayed, setGamesPlayed] = useState(() => storage.getGamesPlayed());
@@ -119,6 +121,7 @@ export default function App() {
             isMuted={isMuted}
             onToggleSound={handleToggleSound}
             onOpenThemes={() => setIsThemeModalOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
             theme={theme}
           />
         ) : (
@@ -128,6 +131,7 @@ export default function App() {
             isMuted={isMuted}
             onToggleSound={handleToggleSound}
             onOpenThemes={() => setIsThemeModalOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
             onGoHome={() => {
               refreshStats();
               setCurrentScreen('main');
@@ -146,6 +150,18 @@ export default function App() {
             onBuyTheme={handleBuyTheme}
             onClose={() => setIsThemeModalOpen(false)}
             theme={theme}
+          />
+
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            theme={theme}
+            isMuted={isMuted}
+            onToggleSound={handleToggleSound}
+            onOpenThemes={() => {
+              setIsSettingsOpen(false);
+              setIsThemeModalOpen(true);
+            }}
           />
         </View>
       </SafeAreaView>

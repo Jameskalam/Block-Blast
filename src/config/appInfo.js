@@ -2,7 +2,10 @@ import { Linking } from 'react-native';
 
 // Android application id (must match app.json > expo.android.package). This is
 // what the Play Store uses to identify your app.
-export const ANDROID_PACKAGE = 'com.blockmint.game';
+export const ANDROID_PACKAGE = 'com.blockmint.puzzle';
+export const APP_VERSION = '1.0.2';
+export const CONTACT_EMAIL = 'jameskalam2002@gmail.com';
+export const PRIVACY_POLICY_URL = 'https://jameskalam.github.io/Block-Blast/privacy-policy/';
 
 // Deep link that opens the app's Play Store page directly in the Play Store app
 // (falls back to the web listing if the store app isn't available).
@@ -23,5 +26,28 @@ export async function openRateUs() {
     } catch (_) {
       // Nothing else we can do if the OS can't open any URL.
     }
+  }
+}
+
+/**
+ * Open the device email app with prefilled feedback to the developer.
+ */
+export async function openContactEmail() {
+  const mailUrl = `mailto:${CONTACT_EMAIL}?subject=Block%20Mint%20v${APP_VERSION}%20Feedback`;
+  try {
+    await Linking.openURL(mailUrl);
+  } catch (e) {
+    // If mailto is unsupported on the system, try the web fallback or ignore
+  }
+}
+
+/**
+ * Open the privacy policy in the device browser.
+ */
+export async function openPrivacyPolicy() {
+  try {
+    await Linking.openURL(PRIVACY_POLICY_URL);
+  } catch (e) {
+    // ignore
   }
 }

@@ -17,6 +17,7 @@ export default function MainMenuScreen({
   isMuted,
   onToggleSound,
   onOpenThemes,
+  onOpenSettings,
   theme,
 }) {
   return (
@@ -45,6 +46,12 @@ export default function MainMenuScreen({
             style={[styles.iconBtn, { backgroundColor: theme.cardBg, borderColor: theme.cellBorder }]}
           >
             <Icon name={isMuted ? 'VolumeX' : 'Volume2'} size={22} color={isMuted ? '#ef4444' : theme.accent} />
+          </Pressable>
+          <Pressable
+            onPress={onOpenSettings}
+            style={[styles.iconBtn, { backgroundColor: theme.cardBg, borderColor: theme.cellBorder }]}
+          >
+            <Icon name="Settings" size={22} color={theme.text} />
           </Pressable>
         </View>
       </View>
@@ -112,6 +119,22 @@ export default function MainMenuScreen({
         <Icon name="Heart" size={18} color="#ff5277" />
         <Text style={[styles.rateText, { color: theme.text }]}>Rate Us on Play Store</Text>
         <Icon name="Star" size={16} color="#fbbf24" />
+      </Pressable>
+
+      {/* Settings & Support */}
+      <Pressable
+        onPress={() => {
+          soundEngine.playPopSound();
+          onOpenSettings && onOpenSettings();
+        }}
+        style={({ pressed }) => [
+          styles.rateBtn,
+          { backgroundColor: theme.cardBg, borderColor: theme.cellBorder, transform: [{ scale: pressed ? 0.97 : 1 }] },
+        ]}
+      >
+        <Icon name="Settings" size={18} color={theme.accent} />
+        <Text style={[styles.rateText, { color: theme.text }]}>Settings & Support (v1.0.2)</Text>
+        <Icon name="Info" size={16} color={theme.accent} />
       </Pressable>
 
       {/* Daily reward popup */}

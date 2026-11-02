@@ -29,6 +29,11 @@ const GLYPHS = {
   Rocket: '🚀',
   Medal: '🏅',
   Target: '🎯',
+  Settings: '⚙️',
+  Mail: '✉️',
+  Info: 'ℹ️',
+  Shield: '🛡️',
+  Send: '📤',
 };
 
 export default function Icon({ name, size = 20, color = '#fff', style }) {

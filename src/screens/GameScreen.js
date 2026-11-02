@@ -51,6 +51,7 @@ export default function GameScreen({
   isMuted,
   onToggleSound,
   onOpenThemes,
+  onOpenSettings,
   onGoHome,
   onCoinsChange,
   theme,
@@ -538,6 +539,7 @@ export default function GameScreen({
         isMuted={isMuted}
         onToggleSound={onToggleSound}
         onOpenThemes={onOpenThemes}
+        onOpenSettings={onOpenSettings}
         onGoHome={handleRequestExit}
         theme={currentTheme}
       />

@@ -9,6 +9,7 @@ export default function Header({
   isMuted,
   onToggleSound,
   onOpenThemes,
+  onOpenSettings,
   onGoHome,
   theme,
 }) {
@@ -35,6 +36,11 @@ export default function Header({
           <Pressable onPress={onToggleSound} style={[styles.iconBtn, { backgroundColor: theme.cardBg, borderColor: theme.cellBorder }]}>
             <Icon name={isMuted ? 'VolumeX' : 'Volume2'} size={20} color={isMuted ? '#ef4444' : theme.accent} />
           </Pressable>
+          {onOpenSettings && (
+            <Pressable onPress={onOpenSettings} style={[styles.iconBtn, { backgroundColor: theme.cardBg, borderColor: theme.cellBorder }]}>
+              <Icon name="Settings" size={20} color={theme.text} />
+            </Pressable>
+          )}
         </View>
       </View>
 
