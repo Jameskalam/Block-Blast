@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Block Mint",
+    "name": "Block Mint: Puzzle Game",
     "slug": "block-mint",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -24,7 +24,7 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.blockmint.puzzle",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",

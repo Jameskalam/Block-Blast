@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Modal, Pressable, StyleSheet, Text, View, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../components/Header';
 import GridBoard, { BOARD_BORDER, BOARD_PADDING, CELL_MARGIN, CELL_RADIUS } from '../components/GridBoard';
@@ -12,6 +12,7 @@ import { SHOW_ADS } from '../ads/adConfig';
 import BlastLayer from '../components/BlastLayer';
 import StageBanner from '../components/StageBanner';
 import Icon from '../components/Icon';
+import { PLAY_STORE_URL } from '../config/appInfo';
 import {
   createEmptyGrid,
   canPlacePiece,
@@ -168,6 +169,15 @@ export default function GameScreen({
     setHasUsedAdResume(false);
     storage.incrementGamesPlayed();
     soundEngine.playPopSound();
+  };
+
+  const handleShareScore = async () => {
+    soundEngine.playPopSound();
+    try {
+      await Share.share({
+        message: `I just scored ${score.toLocaleString()} points in Block Mint: Puzzle Game! Can you beat my high score? Play now: ${PLAY_STORE_URL}`,
+      });
+    } catch (_) {}
   };
 
   // ---- Drag geometry helpers ----------------------------------------------
@@ -636,6 +646,18 @@ export default function GameScreen({
               <Icon name="Rocket" size={22} color="#ffffff" />
               <Text style={styles.playAgainText}>PLAY AGAIN</Text>
             </Pressable>
+
+            <Pressable
+              onPress={handleShareScore}
+              style={[
+                styles.shareScoreBtn,
+                { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cellBorder },
+              ]}
+            >
+              <Icon name="Send" size={18} color="#38bdf8" />
+              <Text style={[styles.shareScoreText, { color: currentTheme.text }]}>Share Score</Text>
+            </Pressable>
+
             <Pressable onPress={onGoHome} style={styles.homeLink}>
               <Text style={[styles.homeLinkText, { color: currentTheme.textMuted }]}>Back to Home</Text>
             </Pressable>
@@ -663,6 +685,8 @@ const styles = StyleSheet.create({
   coinsEarnedText: { color: '#fbbf24', fontWeight: '800', fontSize: 15 },
   playAgain: { width: '100%', borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   playAgainText: { color: '#ffffff', fontWeight: '900', fontSize: 18 },
+  shareScoreBtn: { width: '100%', borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, marginTop: 10 },
+  shareScoreText: { fontWeight: '800', fontSize: 15 },
   homeLink: { marginTop: 14, padding: 6 },
   homeLinkText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
   gameOverBanner: { width: '100%', marginTop: 16, borderRadius: 12, overflow: 'hidden' },

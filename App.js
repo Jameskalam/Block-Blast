@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, BackHandler } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import MainMenuScreen from './src/screens/MainMenuScreen';
 import GameScreen from './src/screens/GameScreen';
 import ThemeSelector from './src/components/ThemeSelector';
 import SettingsModal from './src/components/SettingsModal';
+import TutorialModal from './src/components/TutorialModal';
+import InAppPrivacyModal from './src/components/InAppPrivacyModal';
+import ExitConfirmModal from './src/components/ExitConfirmModal';
 import { THEMES } from './src/styles/themes';
 import { storage } from './src/engine/storage';
 import { soundEngine } from './src/engine/soundEngine';
@@ -16,6 +19,10 @@ export default function App() {
   const [themeId, setThemeId] = useState(() => storage.getActiveTheme());
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [pendingPlay, setPendingPlay] = useState(false);
   const [highScore, setHighScore] = useState(() => storage.getHighScore());
   const [totalBlasts, setTotalBlasts] = useState(() => storage.getTotalBlasts());
   const [gamesPlayed, setGamesPlayed] = useState(() => storage.getGamesPlayed());
@@ -100,6 +107,70 @@ export default function App() {
     }
   };
 
+  // Intercept hardware back button on Android when on Main Menu
+  useEffect(() => {
+    if (currentScreen !== 'main') return;
+
+    const onBackPress = () => {
+      if (isExitModalOpen) {
+        setIsExitModalOpen(false);
+        return true;
+      }
+      if (isPrivacyOpen) {
+        setIsPrivacyOpen(false);
+        return true;
+      }
+      if (isTutorialOpen) {
+        setIsTutorialOpen(false);
+        setPendingPlay(false);
+        return true;
+      }
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return true;
+      }
+      if (isThemeModalOpen) {
+        setIsThemeModalOpen(false);
+        return true;
+      }
+      if (dailyReward) {
+        setDailyReward(null);
+        return true;
+      }
+      // If no modal is open on the Home screen, prompt exit confirmation
+      setIsExitModalOpen(true);
+      return true;
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [
+    currentScreen,
+    isExitModalOpen,
+    isPrivacyOpen,
+    isTutorialOpen,
+    isSettingsOpen,
+    isThemeModalOpen,
+    dailyReward,
+  ]);
+
+  const handleStartGame = () => {
+    if (!storage.hasSeenTutorial()) {
+      setPendingPlay(true);
+      setIsTutorialOpen(true);
+    } else {
+      setCurrentScreen('game');
+    }
+  };
+
+  const handleCloseTutorial = () => {
+    setIsTutorialOpen(false);
+    if (pendingPlay) {
+      setPendingPlay(false);
+      setCurrentScreen('game');
+    }
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView
@@ -110,7 +181,7 @@ export default function App() {
         <View style={styles.fill}>
         {!isReady ? null : currentScreen === 'main' ? (
           <MainMenuScreen
-            onStartGame={() => setCurrentScreen('game')}
+            onStartGame={handleStartGame}
             highScore={highScore}
             totalBlasts={totalBlasts}
             gamesPlayed={gamesPlayed}
@@ -122,6 +193,10 @@ export default function App() {
             onToggleSound={handleToggleSound}
             onOpenThemes={() => setIsThemeModalOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenTutorial={() => {
+              setPendingPlay(false);
+              setIsTutorialOpen(true);
+            }}
             theme={theme}
           />
         ) : (
@@ -162,6 +237,33 @@ export default function App() {
               setIsSettingsOpen(false);
               setIsThemeModalOpen(true);
             }}
+            onOpenTutorial={() => {
+              setIsSettingsOpen(false);
+              setPendingPlay(false);
+              setIsTutorialOpen(true);
+            }}
+            onOpenPrivacy={() => {
+              setIsSettingsOpen(false);
+              setIsPrivacyOpen(true);
+            }}
+          />
+
+          <TutorialModal
+            isOpen={isTutorialOpen}
+            onClose={handleCloseTutorial}
+            theme={theme}
+          />
+
+          <InAppPrivacyModal
+            isOpen={isPrivacyOpen}
+            onClose={() => setIsPrivacyOpen(false)}
+            theme={theme}
+          />
+
+          <ExitConfirmModal
+            isOpen={isExitModalOpen}
+            onClose={() => setIsExitModalOpen(false)}
+            theme={theme}
           />
         </View>
       </SafeAreaView>

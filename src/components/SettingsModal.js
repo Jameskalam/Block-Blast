@@ -25,6 +25,8 @@ export default function SettingsModal({
   isMuted,
   onToggleSound,
   onOpenThemes,
+  onOpenTutorial,
+  onOpenPrivacy,
 }) {
   const handleClose = () => {
     soundEngine.playPopSound();
@@ -43,7 +45,16 @@ export default function SettingsModal({
 
   const handlePrivacy = () => {
     soundEngine.playPopSound();
-    openPrivacyPolicy();
+    if (onOpenPrivacy) {
+      onOpenPrivacy();
+    } else {
+      openPrivacyPolicy();
+    }
+  };
+
+  const handleTutorial = () => {
+    soundEngine.playPopSound();
+    if (onOpenTutorial) onOpenTutorial();
   };
 
   const handleThemes = () => {
@@ -166,6 +177,17 @@ export default function SettingsModal({
 
               <View style={[styles.divider, { backgroundColor: theme.cellBorder }]} />
 
+              {/* Tutorial / Walkthrough */}
+              <Pressable onPress={handleTutorial} style={styles.actionRow}>
+                <View style={styles.actionLeft}>
+                  <Icon name="BookOpen" size={20} color={theme.accent} />
+                  <Text style={[styles.actionLabel, { color: theme.text }]}>How to Play (Tutorial)</Text>
+                </View>
+                <Text style={[styles.actionChevron, { color: theme.accent }]}>Replay ▶</Text>
+              </Pressable>
+
+              <View style={[styles.divider, { backgroundColor: theme.cellBorder }]} />
+
               {/* Theme Shop */}
               <Pressable onPress={handleThemes} style={styles.actionRow}>
                 <View style={styles.actionLeft}>
@@ -194,7 +216,7 @@ export default function SettingsModal({
                   <Icon name="Shield" size={20} color="#38bdf8" />
                   <Text style={[styles.actionLabel, { color: theme.text }]}>Privacy Policy</Text>
                 </View>
-                <Text style={[styles.actionChevron, { color: theme.accent }]}>View ▶</Text>
+                <Text style={[styles.actionChevron, { color: theme.accent }]}>Read In-App ▶</Text>
               </Pressable>
             </View>
           </ScrollView>

@@ -34,6 +34,11 @@ const GLYPHS = {
   Info: 'ℹ️',
   Shield: '🛡️',
   Send: '📤',
+  BookOpen: '📖',
+  HelpCircle: '❓',
+  RotateCcw: '🔄',
+  Compass: '🧭',
+  ExternalLink: '↗️',
 };
 
 export default function Icon({ name, size = 20, color = '#fff', style }) {

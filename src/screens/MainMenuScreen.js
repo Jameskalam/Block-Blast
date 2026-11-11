@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, Modal, ScrollView } from 'react-nati
 import Icon from '../components/Icon';
 import BannerAd from '../ads/BannerAd';
 import { soundEngine } from '../engine/soundEngine';
-import { openRateUs } from '../config/appInfo';
+import { openRateUs, APP_VERSION } from '../config/appInfo';
 
 export default function MainMenuScreen({
   onStartGame,
@@ -18,6 +18,7 @@ export default function MainMenuScreen({
   onToggleSound,
   onOpenThemes,
   onOpenSettings,
+  onOpenTutorial,
   theme,
 }) {
   return (
@@ -97,13 +98,31 @@ export default function MainMenuScreen({
         </View>
       </View>
 
-      {/* How to play */}
-      <View style={[styles.howTo, { backgroundColor: theme.cardBg, borderColor: theme.cellBorder }]}>
-        <Text style={[styles.howToTitle, { color: theme.text }]}>How to Play</Text>
+      {/* How to play card with dynamic tutorial launcher */}
+      <Pressable
+        onPress={() => {
+          soundEngine.playPopSound();
+          if (onOpenTutorial) onOpenTutorial();
+        }}
+        style={({ pressed }) => [
+          styles.howTo,
+          {
+            backgroundColor: theme.cardBg,
+            borderColor: theme.cellBorder,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          },
+        ]}
+      >
+        <View style={styles.howToHeader}>
+          <Text style={[styles.howToTitle, { color: theme.text }]}>How to Play</Text>
+          <View style={[styles.tutorialTag, { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38bdf8' }]}>
+            <Text style={styles.tutorialTagText}>TUTORIAL ▶</Text>
+          </View>
+        </View>
         <HowToStep icon="Target" text="Drag a colorful block onto the grid" theme={theme} />
         <HowToStep icon="Sparkles" text="Fill a full row or column to blast it" theme={theme} />
-        <HowToStep icon="Coin" text="Earn coins and beat your high score!" theme={theme} />
-      </View>
+        <HowToStep icon="Flame" text="Clear combo streaks to earn bonus coins" theme={theme} />
+      </Pressable>
 
       {/* Rate Us — opens the Play Store listing */}
       <Pressable
@@ -133,7 +152,7 @@ export default function MainMenuScreen({
         ]}
       >
         <Icon name="Settings" size={18} color={theme.accent} />
-        <Text style={[styles.rateText, { color: theme.text }]}>Settings & Support (v1.0.2)</Text>
+        <Text style={[styles.rateText, { color: theme.text }]}>Settings & Support (v{APP_VERSION})</Text>
         <Icon name="Info" size={16} color={theme.accent} />
       </Pressable>
 
@@ -231,7 +250,10 @@ const styles = StyleSheet.create({
   rateBtn: { width: '100%', maxWidth: 380, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 18, borderWidth: 1, paddingVertical: 14, marginTop: 4 },
   rateText: { fontSize: 14, fontWeight: '800' },
   howTo: { width: '100%', maxWidth: 380, borderRadius: 20, borderWidth: 1, padding: 16, gap: 12, marginTop: 4 },
-  howToTitle: { fontSize: 16, fontWeight: '900', marginBottom: 2 },
+  howToHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
+  howToTitle: { fontSize: 16, fontWeight: '900' },
+  tutorialTag: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10, borderWidth: 1 },
+  tutorialTagText: { fontSize: 10, fontWeight: '900', color: '#38bdf8', letterSpacing: 0.5 },
   howToStep: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   howToText: { fontSize: 14, fontWeight: '600', flex: 1 },
   rewardBackdrop: { flex: 1, backgroundColor: 'rgba(5,5,20,0.88)', alignItems: 'center', justifyContent: 'center', padding: 20 },

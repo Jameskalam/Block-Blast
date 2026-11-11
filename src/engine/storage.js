@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   BEST_COMBO: 'BLOCK_BLAST_BEST_COMBO',
   LAST_REWARD_DAY: 'BLOCK_BLAST_LAST_REWARD_DAY',
   UNLOCKED_THEMES: 'BLOCK_BLAST_UNLOCKED_THEMES',
+  HAS_SEEN_TUTORIAL: 'BLOCK_BLAST_HAS_SEEN_TUTORIAL',
 };
 
 const DEFAULTS = {
@@ -21,6 +22,7 @@ const DEFAULTS = {
   [STORAGE_KEYS.LAST_REWARD_DAY]: '',
   // 'ocean' is free and unlocked by default. Stored as a comma-separated list.
   [STORAGE_KEYS.UNLOCKED_THEMES]: 'ocean',
+  [STORAGE_KEYS.HAS_SEEN_TUTORIAL]: 0,
 };
 
 // AsyncStorage is async, but the UI reads these values synchronously (useState
@@ -69,6 +71,7 @@ export const storage = {
       coins: cache[STORAGE_KEYS.COINS],
       bestCombo: cache[STORAGE_KEYS.BEST_COMBO],
       unlockedThemes: parseThemeList(cache[STORAGE_KEYS.UNLOCKED_THEMES]),
+      hasSeenTutorial: Boolean(cache[STORAGE_KEYS.HAS_SEEN_TUTORIAL]),
     };
   },
 
@@ -150,6 +153,14 @@ export const storage = {
     cache[STORAGE_KEYS.UNLOCKED_THEMES] = list.join(',');
     persist(STORAGE_KEYS.UNLOCKED_THEMES, cache[STORAGE_KEYS.UNLOCKED_THEMES]);
     return { success: true, alreadyOwned: false, coins: cache[STORAGE_KEYS.COINS] };
+  },
+
+  // ---- Tutorial & Onboarding ---------------------------------------------
+  hasSeenTutorial: () => Boolean(cache[STORAGE_KEYS.HAS_SEEN_TUTORIAL]),
+
+  setHasSeenTutorial: (seen = true) => {
+    cache[STORAGE_KEYS.HAS_SEEN_TUTORIAL] = seen ? 1 : 0;
+    persist(STORAGE_KEYS.HAS_SEEN_TUTORIAL, seen ? 1 : 0);
   },
 
   // ---- Daily bonus: returns the reward if not yet claimed today -----------
