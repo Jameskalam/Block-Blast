@@ -28,16 +28,12 @@ const TEST_IDS = {
 };
 
 // -----------------------------------------------------------------------------
-// ADMOB CONFIGURATION FOR 14-DAY CLOSED TESTING
-// Using official Google Test IDs during the 14-day closed test to protect
-// the AdMob account from invalid traffic strikes.
-// Production IDs saved for final release:
-//   banner: 'ca-app-pub-7074226288393213/8967822318'
-//   rewarded: 'ca-app-pub-7074226288393213/9526330712'
+// ADMOB CONFIGURATION FOR PRODUCTION RELEASE
+// Real production AdMob IDs wired for official production rollout.
 // -----------------------------------------------------------------------------
 export const PROD_IDS = {
-  banner: '',   // Empty = uses Google test banner for safe 14-day testing
-  rewarded: '', // Empty = uses Google test rewarded for safe 14-day testing
+  banner: 'ca-app-pub-7074226288393213/8967822318',
+  rewarded: 'ca-app-pub-7074226288393213/9526330712',
   interstitial: '', // optional
 };
 

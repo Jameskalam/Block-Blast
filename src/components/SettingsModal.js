@@ -100,11 +100,11 @@ export default function SettingsModal({
                   </Text>
                 </View>
                 <View style={[styles.betaPill, { backgroundColor: 'rgba(52, 211, 153, 0.15)', borderColor: '#34d399' }]}>
-                  <Text style={styles.betaPillText}>CLOSED BETA</Text>
+                  <Text style={styles.betaPillText}>RELEASE CANDIDATE</Text>
                 </View>
               </View>
               <Text style={[styles.versionHint, { color: theme.textMuted }]}>
-                Production-ready test release. No build code confusion.
+                Production Release Candidate with live AdMob ads enabled.
               </Text>
             </View>
 

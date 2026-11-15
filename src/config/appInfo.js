@@ -3,7 +3,7 @@ import { Linking } from 'react-native';
 // Android application id (must match app.json > expo.android.package). This is
 // what the Play Store uses to identify your app.
 export const ANDROID_PACKAGE = 'com.blockmint.puzzle';
-export const APP_VERSION = '1.0.3';
+export const APP_VERSION = '1.0.0-RC';
 export const CONTACT_EMAIL = 'jameskalam2002@gmail.com';
 export const PRIVACY_POLICY_URL = 'https://jameskalam.github.io/Block-Blast/privacy-policy/';
 
