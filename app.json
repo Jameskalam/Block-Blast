@@ -24,7 +24,7 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.blockmint.puzzle",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
